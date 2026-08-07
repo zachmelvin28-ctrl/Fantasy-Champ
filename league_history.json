@@ -1,0 +1,33 @@
+{
+    "champions": [
+        {
+            "year": 2025,
+            "team": "TheMedulla Oblangatas",
+            "manager": "Zach",
+            "runner_up": "Gridiron Gurus"
+        },
+        {
+            "year": 2024,
+            "team": "Dynasty Destroyers",
+            "manager": "Alex",
+            "runner_up": "TheMedulla Oblangatas"
+        }
+    ],
+    "records": [
+        {
+            "record": "Highest Single Week Score",
+            "score": "184.4 pts",
+            "holder": "TheMedulla Oblangatas (2025)"
+        },
+        {
+            "record": "Longest Win Streak",
+            "score": "9 Games",
+            "holder": "Gridiron Gurus (2024)"
+        },
+        {
+            "record": "Most Points For (Season)",
+            "score": "1,942.5 pts",
+            "holder": "TheMedulla Oblangatas (2025)"
+        }
+    ]
+}
