@@ -1,3 +1,9 @@
+@app.route('/favicon.ico')
+@app.route('/favicon.png')
+def favicon():
+    return '', 204
+
+
 from itertools import combinations
 import json
 import os
