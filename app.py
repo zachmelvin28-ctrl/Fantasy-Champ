@@ -909,8 +909,8 @@ HOF_TEMPLATE = """
     </div>
     <div style="background: #262626; padding: 15px; border-radius: 8px;">
         <div style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-            <p style="color: #ffca28; font-weight: bold; margin: 0;">🏆 2025 Champion: TheMedulla Oblangatas</p>
-            <p style="color: #aaa; font-size: 0.85em; margin: 4px 0 0 0;">Manager: Zach | Runner-Up: Gridiron Gurus</p>
+            <p style="color: #ffca28; font-weight: bold; margin: 0;">🏆 Champion: TheMedulla Oblangatas</p>
+            <p style="color: #aaa; font-size: 0.85em; margin: 4px 0 0 0;">Manager: Zach</p>
         </div>
     </div>
 </div>
@@ -1067,6 +1067,9 @@ def process_sleeper_sync(sleeper_input, selected_league_id):
   target_league = None
   owner_rosters = {}
   league_owners = []
+
+  sleeper_input = str(sleeper_input) if sleeper_input else ""
+  selected_league_id = str(selected_league_id) if selected_league_id else ""
 
   try:
     if sleeper_input and not sleeper_input.isdigit() and not selected_league_id:
@@ -1347,7 +1350,7 @@ def home():
     ):
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
       owner_rosters = session.get("owner_rosters", {})
-      league_owners = session.get("league_owners", {})
+      league_owners = session.get("league_owners", [])
 
     if action == "clear_trade":
       selected_assets = {"team_a": [], "team_b": []}
@@ -1536,7 +1539,7 @@ def home():
 
           all_candidates = filtered_candidates
           page_size = 4
-          if all_candidates:
+          if len(all_candidates) > 0:
             start_idx = (smart_page * page_size) % len(all_candidates)
             smart_suggestions = all_candidates[start_idx : start_idx + page_size]
 
