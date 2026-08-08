@@ -1,9 +1,3 @@
-@app.route('/favicon.ico')
-@app.route('/favicon.png')
-def favicon():
-    return '', 204
-
-
 from itertools import combinations
 import json
 import os
@@ -15,8 +9,17 @@ from flask import Flask, jsonify, render_template_string, request, session
 app = Flask(__name__)
 app.secret_key = "dynasty_trade_calc_secret_key_2026"
 
-PLAYER_CACHE_FILE = "sleeper_players.json"
-VALUES_CACHE_FILE = "fantasycalc_cache.json"
+# Use /tmp directory on Vercel to avoid read-only file system errors
+PLAYER_CACHE_FILE = (
+    os.path.join("/tmp", "sleeper_players.json")
+    if os.environ.get("VERCEL")
+    else "sleeper_players.json"
+)
+VALUES_CACHE_FILE = (
+    os.path.join("/tmp", "fantasycalc_cache.json")
+    if os.environ.get("VERCEL")
+    else "fantasycalc_cache.json"
+)
 CACHE_EXPIRATION_SECONDS = 86400  # 24 Hours
 
 DEFAULT_PLAYERS = {
@@ -1687,7 +1690,9 @@ def home():
       selected_owner_b=selected_owner_b,
       pick_modifier=pick_modifier,
       smart_strategy=smart_strategy,
-      smart_strategy_label=strategy_labels.get(smart_strategy, "Balanced Value Match"),
+      smart_strategy_label=strategy_labels.get(
+          smart_strategy, "Balanced Value Match"
+      ),
       target_player_filter=target_player_filter,
       smart_page=smart_page,
   )
