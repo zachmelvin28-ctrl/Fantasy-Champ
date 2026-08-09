@@ -376,7 +376,7 @@ CALCULATOR_TEMPLATE = """
                 </div>
                 <div style="flex: 1; min-width: 180px;">
                     <small>Specific Player Target (Optional):</small>
-                    <input type="text" name="target_player_filter" placeholder="e.g. Cam Newton" value="{{ target_player_filter }}" style="width: 100%; box-sizing: border-box; margin-top: 4px;">
+                    <input type="text" name="target_player_filter" placeholder="e.g. Breece Hall" value="{{ target_player_filter }}" style="width: 100%; box-sizing: border-box; margin-top: 4px;">
                 </div>
             </div>
             <button type="submit" name="action" value="smart_more" class="btn-smart-more">🔄 Suggest More Trade Options</button>
