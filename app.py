@@ -4,44 +4,10 @@ import os
 import ssl
 import time
 import urllib.request
-from flask import Flask, jsonify, render_template_string, request, session, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, jsonify, render_template_string, request, session
 
 app = Flask(__name__)
 app.secret_key = "dynasty_trade_calc_secret_key_2026"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-
-# 1. Define your color maps
-TEAM_THEMES = {
-    'chiefs': {'bg': '#2b090e', 'text': '#ffffff', 'accent': '#E31837'},
-    'cowboys': {'bg': '#041E42', 'text': '#ffffff', 'accent': '#003594'},
-    'packers': {'bg': '#203731', 'text': '#ffffff', 'accent': '#FFB612'},
-    'eagles': {'bg': '#004C54', 'text': '#ffffff', 'accent': '#A5ACAF'},
-    'default': {'bg': '#121212', 'text': '#e0e0e0', 'accent': '#007bff'}
-}
-
-# 2. Define your Database Model with Password Hashing & Team Preferences
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
-    favorite_team = db.Column(db.String(50), default='default')
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
 
 # Use /tmp directory on Vercel to avoid read-only file system errors
 PLAYER_CACHE_FILE = (
@@ -55,6 +21,109 @@ VALUES_CACHE_FILE = (
     else "fantasycalc_cache.json"
 )
 CACHE_EXPIRATION_SECONDS = 86400  # 24 Hours
+
+THEMES = {
+    "dark": {
+        "name": "Classic Dark",
+        "bg": "#121212",
+        "container": "#1e1e1e",
+        "panel": "#262626",
+        "text": "#e0e0e0",
+        "subtext": "#aaa",
+        "primary": "#007bff",
+        "primary_hover": "#0056b3",
+        "border": "#333",
+        "input_bg": "#333",
+        "card_bg": "#1e1e1e",
+    },
+    "light": {
+        "name": "Clean Light",
+        "bg": "#f0f2f5",
+        "container": "#ffffff",
+        "panel": "#f8f9fa",
+        "text": "#212529",
+        "subtext": "#6c757d",
+        "primary": "#0066cc",
+        "primary_hover": "#004080",
+        "border": "#ced4da",
+        "input_bg": "#ffffff",
+        "card_bg": "#ffffff",
+    },
+    "cyberpunk": {
+        "name": "Cyberpunk Neon",
+        "bg": "#0f051d",
+        "container": "#1a0933",
+        "panel": "#260d4d",
+        "text": "#00ffcc",
+        "subtext": "#ff007f",
+        "primary": "#ff007f",
+        "primary_hover": "#cc0064",
+        "border": "#ff007f44",
+        "input_bg": "#120424",
+        "card_bg": "#16062b",
+    },
+    "emerald": {
+        "name": "Emerald Forest",
+        "bg": "#0b1a12",
+        "container": "#132e20",
+        "panel": "#1b3b2b",
+        "text": "#e0f2f1",
+        "subtext": "#81c784",
+        "primary": "#2e7d32",
+        "primary_hover": "#1b5e20",
+        "border": "#2e7d3244",
+        "input_bg": "#0d2117",
+        "card_bg": "#132e20",
+    },
+}
+
+
+def get_shared_styles(t):
+  return f"""
+    body {{ font-family: -apple-system, sans-serif; padding: 15px; background: {t['bg']}; color: {t['text']}; margin: 0; transition: background 0.3s, color 0.3s; }}
+    .container {{ max-width: 650px; margin: 0 auto; background: {t['container']}; padding: 20px; border-radius: 12px; border: 1px solid {t['border']}; }}
+    h2 {{ text-align: center; color: {t['text']}; margin-top: 0; }}
+    .theme-bar {{ display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px; gap: 8px; font-size: 0.85em; }}
+    .theme-bar select {{ background: {t['input_bg']}; color: {t['text']}; border: 1px solid {t['border']}; padding: 4px 8px; border-radius: 4px; }}
+    .nav-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; background: {t['panel']}; padding: 6px; border-radius: 8px; border: 1px solid {t['border']}; overflow-x: auto; }}
+    .nav-btn {{ flex: 1; text-align: center; padding: 10px; background: {t['input_bg']}; color: {t['subtext']}; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.9em; white-space: nowrap; }}
+    .nav-btn.active {{ background: {t['primary']}; color: white; }}
+    .sync-box {{ background: {t['panel']}; border: 1px solid {t['primary']}; padding: 12px; border-radius: 8px; margin-bottom: 15px; }}
+    .sync-inputs {{ display: flex; gap: 8px; margin-top: 6px; }}
+    input[type="text"], input[type="number"], select {{ background: {t['input_bg']}; color: {t['text']}; border: 1px solid {t['border']}; padding: 8px; border-radius: 4px; }}
+    input[type="text"] {{ flex: 2; }}
+    button {{ width: 100%; padding: 14px; background: {t['primary']}; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 10px; cursor: pointer; }}
+    button:hover {{ background: {t['primary_hover']}; }}
+    .sync-msg {{ font-size: 0.85em; color: {t['primary']}; margin-top: 6px; font-weight: bold; }}
+    .rank-card {{ background: {t['panel']}; border: 1px solid {t['border']}; padding: 12px 15px; border-radius: 8px; margin-bottom: 12px; }}
+    .rank-header {{ display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; font-weight: bold; color: {t['primary']}; margin-bottom: 6px; }}
+    .badge {{ padding: 3px 8px; border-radius: 4px; font-size: 0.75em; text-transform: uppercase; font-weight: bold; }}
+    .badge-contender {{ background: #1b3320; color: #81c784; border: 1px solid #2e7d32; }}
+    .badge-playoff {{ background: #00363a; color: #4dd0e1; border: 1px solid #00acc1; }}
+    .badge-rebuild {{ background: #3e2723; color: #ffb74d; border: 1px solid #ef6c00; }}
+    .breakdown-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center; margin-top: 8px; background: {t['input_bg']}; padding: 8px; border-radius: 6px; font-size: 0.85em; }}
+    .breakdown-item span {{ display: block; color: {t['subtext']}; font-size: 0.75em; }}
+"""
+
+
+def render_theme_form(current_theme):
+  options = ""
+  for key, data in THEMES.items():
+    selected = "selected" if key == current_theme else ""
+    options += (
+        f'<option value="{key}" {selected}>{data["name"]}</option>'
+    )
+  return f"""
+    <div class="theme-bar">
+        <form method="POST" action="/set-theme" style="margin:0; display:flex; align-items:center; gap:6px;">
+            <label>🎨 Theme:</label>
+            <select name="theme_choice" onchange="this.form.submit()">
+                {options}
+            </select>
+        </form>
+    </div>
+    """
+
 
 DEFAULT_PLAYERS = {
     "Quarterbacks": {
@@ -188,61 +257,98 @@ DEFAULT_PLAYERS = {
 }
 
 ROOKIE_PROSPECTS = [
-    {"id": 1, "name": "Jeremiyah Love", "pos": "RB", "team": "Arizona Cardinals", "rank": 1},
-    {"id": 2, "name": "Carnell Tate", "pos": "WR", "team": "Tennessee Titans", "rank": 2},
-    {"id": 3, "name": "Jordyn Tyson", "pos": "WR", "team": "New Orleans Saints", "rank": 3},
-    {"id": 4, "name": "Makai Lemon", "pos": "WR", "team": "Philadelphia Eagles", "rank": 4},
-    {"id": 5, "name": "Jadarian Price", "pos": "RB", "team": "Seattle Seahawks", "rank": 5},
-    {"id": 6, "name": "KC Concepcion", "pos": "WR", "team": "Cleveland Browns", "rank": 6},
-    {"id": 7, "name": "Fernando Mendoza", "pos": "QB", "team": "Las Vegas Raiders", "rank": 7},
-    {"id": 8, "name": "Kenyon Sadiq", "pos": "TE", "team": "New York Jets", "rank": 8},
-    {"id": 9, "name": "Omar Cooper Jr.", "pos": "WR", "team": "New York Jets", "rank": 9},
-    {"id": 10, "name": "Denzel Boston", "pos": "WR", "team": "Cleveland Browns", "rank": 10},
+    {
+        "id": 1,
+        "name": "Jeremiyah Love",
+        "pos": "RB",
+        "team": "Arizona Cardinals",
+        "rank": 1,
+    },
+    {
+        "id": 2,
+        "name": "Carnell Tate",
+        "pos": "WR",
+        "team": "Tennessee Titans",
+        "rank": 2,
+    },
+    {
+        "id": 3,
+        "name": "Jordyn Tyson",
+        "pos": "WR",
+        "team": "New Orleans Saints",
+        "rank": 3,
+    },
+    {
+        "id": 4,
+        "name": "Makai Lemon",
+        "pos": "WR",
+        "team": "Philadelphia Eagles",
+        "rank": 4,
+    },
+    {
+        "id": 5,
+        "name": "Jadarian Price",
+        "pos": "RB",
+        "team": "Seattle Seahawks",
+        "rank": 5,
+    },
+    {
+        "id": 6,
+        "name": "KC Concepcion",
+        "pos": "WR",
+        "team": "Cleveland Browns",
+        "rank": 6,
+    },
+    {
+        "id": 7,
+        "name": "Fernando Mendoza",
+        "pos": "QB",
+        "team": "Las Vegas Raiders",
+        "rank": 7,
+    },
+    {
+        "id": 8,
+        "name": "Kenyon Sadiq",
+        "pos": "TE",
+        "team": "New York Jets",
+        "rank": 8,
+    },
+    {
+        "id": 9,
+        "name": "Omar Cooper Jr.",
+        "pos": "WR",
+        "team": "New York Jets",
+        "rank": 9,
+    },
+    {
+        "id": 10,
+        "name": "Denzel Boston",
+        "pos": "WR",
+        "team": "Cleveland Browns",
+        "rank": 10,
+    },
 ]
-
-SHARED_STYLES = """
-    body { font-family: -apple-system, sans-serif; padding: 15px; background: {{ theme.bg }}; color: {{ theme.text }}; margin: 0; }
-    .container { max-width: 650px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333; }
-    h2 { text-align: center; color: #fff; margin-top: 0; }
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; background: #181818; padding: 6px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; }
-    .nav-btn { flex: 1; text-align: center; padding: 10px; background: #262626; color: #bbb; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.9em; white-space: nowrap; }
-    .nav-btn.active { background: {{ theme.accent }}; color: white; }
-    .sync-box { background: #222d38; border: 1px solid #1e88e5; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
-    .sync-inputs { display: flex; gap: 8px; margin-top: 6px; }
-    input[type="text"], input[type="number"], select { background: #333; color: #fff; border: 1px solid #555; padding: 8px; border-radius: 4px; }
-    input[type="text"] { flex: 2; }
-    button { width: 100%; padding: 14px; background: {{ theme.accent }}; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 10px; cursor: pointer; }
-    .sync-msg { font-size: 0.85em; color: #29b6f6; margin-top: 6px; font-weight: bold; }
-    .rank-card { background: #262626; border: 1px solid #3a3a3a; padding: 12px 15px; border-radius: 8px; margin-bottom: 12px; }
-    .rank-header { display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; font-weight: bold; color: #64b5f6; margin-bottom: 6px; }
-    .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.75em; text-transform: uppercase; font-weight: bold; }
-    .badge-contender { background: #1b3320; color: #81c784; border: 1px solid #2e7d32; }
-    .badge-playoff { background: #00363a; color: #4dd0e1; border: 1px solid #00acc1; }
-    .badge-rebuild { background: #3e2723; color: #ffb74d; border: 1px solid #ef6c00; }
-    .breakdown-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center; margin-top: 8px; background: #1a1a1a; padding: 8px; border-radius: 6px; font-size: 0.85em; }
-    .breakdown-item span { display: block; color: #aaa; font-size: 0.75em; }
-"""
 
 CALCULATOR_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dynasty Trade Calculator</title>
+    <title>Dynasty Suite</title>
     <style>
         {{ shared_styles }}
-        .toggle-group { display: flex; justify-content: space-around; background: #2a2a2a; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+        .toggle-group { display: flex; justify-content: space-around; background: {{ t['panel'] }}; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid {{ t['border'] }}; }
         .toggle-group label { cursor: pointer; font-weight: bold; }
-        .team-section { background: #262626; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
-        .team-title { font-size: 1.1em; color: {{ theme.accent }}; margin-bottom: 10px; font-weight: bold; }
-        .roster-box { background: #1a2733; border: 1px solid #29b6f6; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
-        .search-box { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 8px; background: #181818; color: #fff; border: 1px solid #444; border-radius: 6px; }
-        details { background: #1e1e1e; margin-bottom: 8px; border-radius: 6px; padding: 8px; border: 1px solid #3a3a3a; }
-        summary { font-weight: bold; cursor: pointer; color: #64b5f6; }
+        .team-section { background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid {{ t['border'] }}; }
+        .team-title { font-size: 1.1em; color: {{ t['primary'] }}; margin-bottom: 10px; font-weight: bold; }
+        .roster-box { background: {{ t['card_bg'] }}; border: 1px solid {{ t['primary'] }}; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
+        .search-box { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 8px; background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; border-radius: 6px; }
+        details { background: {{ t['card_bg'] }}; margin-bottom: 8px; border-radius: 6px; padding: 8px; border: 1px solid {{ t['border'] }}; }
+        summary { font-weight: bold; cursor: pointer; color: {{ t['primary'] }}; }
         .checkbox-grid { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 8px; }
-        .checkbox-item { display: flex; align-items: center; background: #2a2a2a; padding: 8px; border-radius: 4px; font-size: 0.95em; }
+        .checkbox-item { display: flex; align-items: center; background: {{ t['panel'] }}; padding: 8px; border-radius: 4px; font-size: 0.95em; border: 1px solid {{ t['border'] }}; }
         .checkbox-item input { margin-right: 10px; transform: scale(1.2); }
-        .custom-entry { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #444; }
+        .custom-entry { margin-top: 12px; padding-top: 10px; border-top: 1px dashed {{ t['border'] }}; }
         .custom-inputs { display: flex; gap: 8px; margin-top: 6px; }
         input[type="number"] { flex: 1; }
         .btn-copy { background: #28a745; margin-top: 12px; }
@@ -250,37 +356,21 @@ CALCULATOR_TEMPLATE = """
         .btn-suggest { background: #673ab7; margin-top: 10px; }
         .btn-smart { background: #00acc1; margin-top: 10px; }
         .btn-smart-more { background: #00796b; margin-top: 6px; }
-        .result { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; background: #2a2a2a; border: 1px solid {{ theme.accent }}; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; background: {{ t['panel'] }}; border: 1px solid {{ t['primary'] }}; }
         .note { font-size: 0.9em; color: #ffca28; margin-top: 8px; }
         .suggestion { font-size: 0.95em; color: #81c784; margin-top: 10px; background: #1b3320; padding: 10px; border-radius: 6px; }
         .counter-msg { font-size: 0.95em; color: #b388ff; margin-top: 10px; background: #2a1b3d; border: 1px solid #7c4dff; padding: 10px; border-radius: 6px; }
         .smart-container { text-align: left; margin-top: 12px; }
-        .smart-card { font-size: 0.95em; color: #4dd0e1; margin-top: 8px; background: #00363a; border: 1px solid #00acc1; padding: 10px; border-radius: 6px; }
-        .pick-adjuster { background: #242424; padding: 8px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .smart-options { background: #222d38; border: 1px solid #00acc1; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
-        .auth-bar { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9em; }
+        .smart-card { font-size: 0.95em; color: {{ t['text'] }}; margin-top: 8px; background: {{ t['card_bg'] }}; border: 1px solid {{ t['primary'] }}; padding: 10px; border-radius: 6px; }
+        .pick-adjuster { background: {{ t['panel'] }}; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; }
+        .smart-options { background: {{ t['panel'] }}; border: 1px solid {{ t['primary'] }}; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 <div class="container">
+    {{ theme_form | safe }}
     <h2>🏈 Dynasty Suite</h2>
     
-    {% if current_user.is_authenticated %}
-    <div class="auth-bar">
-        <span>👤 Logged in as: <b>{{ current_user.username }}</b></span>
-        <div>
-            <select id="teamThemeSelect" onchange="updateTheme(this.value)" style="padding: 4px; font-size: 0.85em;">
-                <option value="default" {% if user_team == 'default' %}selected{% endif %}>Standard Theme</option>
-                <option value="chiefs" {% if user_team == 'chiefs' %}selected{% endif %}>Chiefs Red</option>
-                <option value="cowboys" {% if user_team == 'cowboys' %}selected{% endif %}>Cowboys Navy</option>
-                <option value="packers" {% if user_team == 'packers' %}selected{% endif %}>Packers Green</option>
-                <option value="eagles" {% if user_team == 'eagles' %}selected{% endif %}>Eagles Midnight</option>
-            </select>
-            <a href="/logout" style="color: #ff5252; margin-left: 10px; text-decoration: none; font-weight: bold;">Logout</a>
-        </div>
-    </div>
-    {% endif %}
-
     <div class="nav-tabs">
         <a href="/" class="nav-btn active">⚖️ Trade Calculator</a>
         <a href="/analysis" class="nav-btn">📊 Team Rankings</a>
@@ -308,7 +398,7 @@ CALCULATOR_TEMPLATE = """
                             <option value="{{ lg.id }}" {% if selected_league_id == lg.id %}selected{% endif %}>{{ lg.name }} ({{ lg.season }})</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" name="action" value="select_league" style="background: #1e88e5; padding: 8px; margin-top: 6px; font-size: 0.9em;">Sync Selected League</button>
+                    <button type="submit" name="action" value="select_league" style="background: {{ t['primary'] }}; padding: 8px; margin-top: 6px; font-size: 0.9em;">Sync Selected League</button>
                 </div>
             {% endif %}
 
@@ -332,7 +422,7 @@ CALCULATOR_TEMPLATE = """
         </div>
 
         {% if league_owners %}
-            <div style="background: #242424; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+            <div style="background: {{ t['panel'] }}; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid {{ t['border'] }};">
                 <small><b>👥 Select Your Team (Team A):</b></small>
                 <div style="margin-top: 6px;">
                     <select name="owner_a" style="width: 100%;" onchange="document.getElementById('calcForm').submit()">
@@ -346,7 +436,7 @@ CALCULATOR_TEMPLATE = """
         {% endif %}
 
         <div class="smart-options">
-            <small style="color: #4dd0e1;"><b>🧠 Smart Trade Finder Options (1-for-1s & Packages):</b></small>
+            <small style="color: {{ t['primary'] }};"><b>🧠 Smart Trade Finder Options (1-for-1s & Packages):</b></small>
             <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 180px;">
                     <small>Strategy Focus:</small>
@@ -465,13 +555,13 @@ CALCULATOR_TEMPLATE = """
                         <div class="smart-card">
                             <b>vs. {{ s.partner }}</b><br>
                             Give: <b>{{ s.gives }}</b> ({{ s.gives_val }} pts) ➔ Get: <b>{{ s.gets }}</b> ({{ s.gets_val }} pts)<br>
-                            <small style="color: #b2ebf2;">Value Diff: {{ s.diff }} pts</small>
+                            <small style="color: {{ t['primary'] }};">Value Diff: {{ s.diff }} pts</small>
                         </div>
                     {% endfor %}
                 </div>
             {% endif %}
 
-            <hr style="border-color: #444;">
+            <hr style="border-color: {{ t['border'] }};">
             <h3>{{ result.message }}</h3>
 
             {% if result.balancer_msg %}
@@ -507,18 +597,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
-
-function updateTheme(team) {
-    fetch('/api/update-theme', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team: team })
-    }).then(res => {
-        if (res.ok) {
-            location.reload();
-        }
-    });
-}
 
 function filterAssets(teamKey, query) {
     const q = query.toLowerCase().trim();
@@ -588,6 +666,7 @@ ANALYSIS_TEMPLATE = """
 </head>
 <body>
 <div class="container">
+    {{ theme_form | safe }}
     <h2>📊 Team Power Rankings & Analysis</h2>
     
     <div class="nav-tabs">
@@ -615,7 +694,7 @@ ANALYSIS_TEMPLATE = """
                             <option value="{{ lg.id }}" {% if selected_league_id == lg.id %}selected{% endif %}>{{ lg.name }} ({{ lg.season }})</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" name="action" value="select_league" style="background: #1e88e5; padding: 8px; margin-top: 6px; font-size: 0.9em;">Load Power Rankings</button>
+                    <button type="submit" name="action" value="select_league" style="background: {{ t['primary'] }}; padding: 8px; margin-top: 6px; font-size: 0.9em;">Load Power Rankings</button>
                 </div>
             {% endif %}
 
@@ -627,7 +706,7 @@ ANALYSIS_TEMPLATE = """
 
     {% if power_rankings %}
         <div style="margin-top: 15px;">
-            <p style="color: #aaa; font-size: 0.9em; text-align: center;">League-wide valuation rankings based on total player assets and traded draft capital.</p>
+            <p style="color: {{ t['subtext'] }}; font-size: 0.9em; text-align: center;">League-wide valuation rankings based on total player assets and traded draft capital.</p>
             
             {% for team in power_rankings %}
                 <div class="rank-card">
@@ -641,7 +720,7 @@ ANALYSIS_TEMPLATE = """
                             {% else %}
                                 <span class="badge badge-rebuild">🌱 Rebuilder</span>
                             {% endif %}
-                            <span style="color: #fff; margin-left: 8px;">{{ "{:,}".format(team.total_val | int) }} pts</span>
+                            <span style="color: {{ t['text'] }}; margin-left: 8px;">{{ "{:,}".format(team.total_val | int) }} pts</span>
                         </div>
                     </div>
                     <div class="breakdown-grid">
@@ -655,7 +734,7 @@ ANALYSIS_TEMPLATE = """
             {% endfor %}
         </div>
     {% else %}
-        <div style="text-align: center; padding: 30px; color: #777;">
+        <div style="text-align: center; padding: 30px; color: {{ t['subtext'] }};">
             <p>No league data loaded. Enter your Sleeper username or League ID above to generate power rankings and team breakdowns.</p>
         </div>
     {% endif %}
@@ -674,21 +753,23 @@ ROOKIE_DRAFT_TEMPLATE = """
         {{ shared_styles }}
         .draft-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }
         @media (max-width: 768px) { .draft-container { grid-template-columns: 1fr; } }
-        .panel { background: #262626; padding: 15px; border-radius: 8px; border: 1px solid #3a3a3a; }
+        .panel { background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; border: 1px solid {{ t['border'] }}; }
         .filters { display: flex; gap: 5px; margin-bottom: 12px; }
-        .filter-btn { background: #333; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
-        .filter-btn.active { background: {{ theme.accent }}; }
+        .filter-btn { background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
+        .filter-btn.active { background: {{ t['primary'] }}; color: #fff; }
         .player-list { max-height: 450px; overflow-y: auto; }
-        .player-card { background: #1e1e1e; padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        .player-card:hover { border-color: {{ theme.accent }}; }
+        .player-card { background: {{ t['card_bg'] }}; padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; }
+        .player-card:hover { border-color: {{ t['primary'] }}; }
         .draft-grid { display: flex; flex-direction: column; gap: 8px; max-height: 480px; overflow-y: auto; }
-        .pick-slot { background: #1e1e1e; padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid {{ theme.accent }}; border: 1px solid #333; font-size: 0.9em; }
-        button.draft-btn { background: {{ theme.accent }}; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: auto; font-size: 0.85em; margin-top: 0; }
-        .sync-badge { background: #1e88e5; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; font-weight: bold; }
+        .pick-slot { background: {{ t['card_bg'] }}; padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid {{ t['primary'] }}; border: 1px solid {{ t['border'] }}; font-size: 0.9em; }
+        button.draft-btn { background: {{ t['primary'] }}; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: auto; font-size: 0.85em; margin-top: 0; }
+        button.draft-btn:hover { background: {{ t['primary_hover'] }}; }
+        .sync-badge { background: {{ t['primary'] }}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; font-weight: bold; }
     </style>
 </head>
 <body>
 <div class="container" style="max-width: 850px;">
+    {{ theme_form | safe }}
     <h2>📋 Rookie Mock Draft Board</h2>
     <div class="nav-tabs">
         <a href="/" class="nav-btn">⚖️ Trade Calculator</a>
@@ -715,7 +796,7 @@ ROOKIE_DRAFT_TEMPLATE = """
                             <option value="{{ lg.id }}" {% if selected_league_id == lg.id %}selected{% endif %}>{{ lg.name }} ({{ lg.season }})</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" name="action" value="select_league" style="background: #1e88e5; padding: 8px; margin-top: 6px; font-size: 0.9em;">Sync Selected League</button>
+                    <button type="submit" name="action" value="select_league" style="background: {{ t['primary'] }}; padding: 8px; margin-top: 6px; font-size: 0.9em;">Sync Selected League</button>
                 </div>
             {% endif %}
 
@@ -730,7 +811,7 @@ ROOKIE_DRAFT_TEMPLATE = """
     <div class="draft-container">
         <!-- Available Players Panel -->
         <div class="panel">
-            <h3 style="margin-top:0; color:#64b5f6; font-size: 1.1em;">Available Prospects</h3>
+            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.1em;">Available Prospects</h3>
             <div class="filters">
                 <button class="filter-btn active" onclick="filterPos('ALL', event)">ALL</button>
                 <button class="filter-btn" onclick="filterPos('QB', event)">QB</button>
@@ -743,7 +824,7 @@ ROOKIE_DRAFT_TEMPLATE = """
 
         <!-- Draft Board Grid Panel -->
         <div class="panel">
-            <h3 style="margin-top:0; color:#64b5f6; font-size: 1.1em;" id="boardTitle">Round 1 Draft Board</h3>
+            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.1em;" id="boardTitle">Round 1 Draft Board</h3>
             <div class="draft-grid" id="draftGrid"></div>
         </div>
     </div>
@@ -770,7 +851,7 @@ ROOKIE_DRAFT_TEMPLATE = """
                 totalPicks = draftData.teams || 10;
                 document.getElementById('syncStatus').innerHTML = `<div class="sync-badge">⚡ Synced with Sleeper League Draft Order (${totalPicks} Teams)</div>`;
             } else {
-                document.getElementById('syncStatus').innerHTML = `<div style="color: #aaa; font-size: 0.85em; margin-bottom: 10px;">💡 Tip: Sync a league above or on the Trade Calculator to load your league's exact draft order & managers.</div>`;
+                document.getElementById('syncStatus').innerHTML = `<div style="color: {{ t['subtext'] }}; font-size: 0.85em; margin-bottom: 10px;">💡 Tip: Sync a league above or on the Trade Calculator to load your league's exact draft order & managers.</div>`;
             }
 
             renderPlayers();
@@ -796,14 +877,14 @@ ROOKIE_DRAFT_TEMPLATE = """
         const filtered = rookies.filter(p => !Object.values(draftState).includes(p.id) && (currentFilter === 'ALL' || p.pos === currentFilter));
         
         if (filtered.length === 0) {
-            listEl.innerHTML = '<p style="color: #777; text-align:center; font-size:0.9em;">No prospects available.</p>';
+            listEl.innerHTML = '<p style="color: {{ t[\'subtext\'] }}; text-align:center; font-size:0.9em;">No prospects available.</p>';
             return;
         }
 
         filtered.forEach(player => {
             const card = document.createElement('div');
             card.className = 'player-card';
-            card.innerHTML = `<span><strong>${player.rank}. ${player.name}</strong><br><small style="color:#aaa;">${player.pos} - ${player.team}</small></span>
+            card.innerHTML = `<span><strong>${player.rank}. ${player.name}</strong><br><small style="color:{{ t['subtext'] }};">${player.pos} - ${player.team}</small></span>
                               <button class="draft-btn" onclick="draftPlayer(${player.id})">Draft</button>`;
             listEl.appendChild(card);
         });
@@ -824,10 +905,10 @@ ROOKIE_DRAFT_TEMPLATE = """
                 ownerName = leagueDraftInfo.slot_to_owner[i] || leagueDraftInfo.slot_to_owner[String(i)] || '';
             }
 
-            const pickLabel = `Pick 1.${i < 10 ? '0' + i : i}` + (ownerName ? ` <small style="color:#29b6f6;">(${ownerName})</small>` : '');
+            const pickLabel = `Pick 1.${i < 10 ? '0' + i : i}` + (ownerName ? ` <small style="color:{{ t['primary'] }};">(${ownerName})</small>` : '');
 
             slot.innerHTML = `<span><strong>${pickLabel}</strong></span>
-                              <span>${draftedPlayer ? '<strong>' + draftedPlayer.name + '</strong> <small style="color:#64b5f6;">(' + draftedPlayer.pos + ')</small>' : '<em style="color:#777;">Available</em>'}</span>`;
+                              <span>${draftedPlayer ? '<strong>' + draftedPlayer.name + '</strong> <small style="color:{{ t['primary'] }};">(' + draftedPlayer.pos + ')</small>' : '<em style="color:{{ t[\'subtext\'] }};">Available</em>'}</span>`;
             gridEl.appendChild(slot);
         }
     }
@@ -859,6 +940,7 @@ LEAGUE_FEED_TEMPLATE = """
 </head>
 <body>
 <div class="container">
+    {{ theme_form | safe }}
     <h2>⚡ Live League Feed</h2>
     <div class="nav-tabs">
         <a href="/" class="nav-btn">⚖️ Trade Calculator</a>
@@ -868,7 +950,7 @@ LEAGUE_FEED_TEMPLATE = """
         <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn">📈 Trends</a>
     </div>
-    <div style="background: #262626; padding: 15px; border-radius: 8px;">
+    <div style="background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; border: 1px solid {{ t['border'] }};">
         <form method="GET" action="/league-feed">
             <small><b>Connect Sleeper League Feed:</b></small>
             <div class="sync-inputs" style="margin-top: 6px;">
@@ -879,13 +961,13 @@ LEAGUE_FEED_TEMPLATE = """
         {% if transactions %}
             <div style="margin-top: 15px;">
                 {% for tx in transactions %}
-                    <div style="background: #1a1a1a; padding: 10px; border-radius: 6px; margin-bottom: 8px;">
-                        <p style="color: #64b5f6; font-weight: bold; margin: 0;">Type: {{ tx.type }}</p>
+                    <div style="background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid {{ t['border'] }};">
+                        <p style="color: {{ t['primary'] }}; font-weight: bold; margin: 0;">Type: {{ tx.type }}</p>
                     </div>
                 {% endfor %}
             </div>
         {% else %}
-            <p style="color: #888; font-size: 0.9em; margin-top: 10px;">Enter a valid Sleeper League ID above to pull real-time transactions.</p>
+            <p style="color: {{ t['subtext'] }}; font-size: 0.9em; margin-top: 10px;">Enter a valid Sleeper League ID above to pull real-time transactions.</p>
         {% endif %}
     </div>
 </div>
@@ -903,6 +985,7 @@ HOF_TEMPLATE = """
 </head>
 <body>
 <div class="container">
+    {{ theme_form | safe }}
     <h2>🏆 League Hall of Fame</h2>
     <div class="nav-tabs">
         <a href="/" class="nav-btn">⚖️ Trade Calculator</a>
@@ -912,10 +995,10 @@ HOF_TEMPLATE = """
         <a href="/hall-of-fame" class="nav-btn active">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn">📈 Trends</a>
     </div>
-    <div style="background: #262626; padding: 15px; border-radius: 8px;">
-        <div style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+    <div style="background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; border: 1px solid {{ t['border'] }};">
+        <div style="background: {{ t['card_bg'] }}; padding: 12px; border-radius: 6px; margin-bottom: 10px; border: 1px solid {{ t['border'] }};">
             <p style="color: #ffca28; font-weight: bold; margin: 0;">🏆 Champion: TheMedulla Oblangatas</p>
-            <p style="color: #aaa; font-size: 0.85em; margin: 4px 0 0 0;">Manager: Zach</p>
+            <p style="color: {{ t['subtext'] }}; font-size: 0.85em; margin: 4px 0 0 0;">Manager: Zach</p>
         </div>
     </div>
 </div>
@@ -934,6 +1017,7 @@ TRENDS_TEMPLATE = """
 </head>
 <body>
 <div class="container">
+    {{ theme_form | safe }}
     <h2>📈 Player Market Value Trends</h2>
     <div class="nav-tabs">
         <a href="/" class="nav-btn">⚖️ Trade Calculator</a>
@@ -943,7 +1027,7 @@ TRENDS_TEMPLATE = """
         <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn active">📈 Trends</a>
     </div>
-    <div style="background: #262626; padding: 15px; border-radius: 8px; height: 350px;">
+    <div style="background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; height: 350px; border: 1px solid {{ t['border'] }};">
         <canvas id="trendChart"></canvas>
     </div>
 </div>
@@ -951,7 +1035,7 @@ TRENDS_TEMPLATE = """
 const rawData = {{ trends | safe }};
 const labels = ['June 2026', 'July 2026', 'August 2026'];
 const datasets = Object.keys(rawData).map((player, idx) => {
-    const colors = ['#3b82f6', '#6366f1', '#10b981'];
+    const colors = ['#3b82f6', '#6366f1', '#10b981', '#f59e0b'];
     return {
         label: player,
         data: rawData[player].map(item => item.value),
@@ -970,115 +1054,11 @@ new Chart(document.getElementById('trendChart').getContext('2d'), {
 """
 
 
-# 3. Authentication & Theme Helper
-def get_current_theme():
-    if current_user.is_authenticated:
-        user_team = getattr(current_user, 'favorite_team', 'default')
-        return TEAM_THEMES.get(user_team, TEAM_THEMES['default'])
-    return TEAM_THEMES['default']
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for('home'))
-        flash('Invalid username or password')
-        
-    return render_template_string('''
-    <!DOCTYPE html>
-    <html>
-    <head><title>Login</title><style>{{ shared_styles }}</style></head>
-    <body>
-    <div class="container" style="max-width: 400px; margin-top: 50px;">
-        <h2>Login</h2>
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <div style="color: #ff5252; margin-bottom: 10px; font-weight: bold;">{{ messages[0] }}</div>
-          {% endif %}
-        {% endwith %}
-        <form method="POST">
-            <div style="margin-bottom: 10px;">Username: <input type="text" name="username" style="width: 100%; margin-top: 4px;"></div>
-            <div style="margin-bottom: 15px;">Password: <input type="password" name="password" style="width: 100%; margin-top: 4px;"></div>
-            <button type="submit">Login</button>
-        </form>
-        <p style="margin-top: 15px; text-align: center;">Don't have an account? <a href="/register" style="color: #64b5f6;">Register here</a></p>
-    </div>
-    </body>
-    </html>
-    ''', shared_styles=SHARED_STYLES, theme=TEAM_THEMES['default'])
-
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists')
-            return redirect(url_for('register'))
-            
-        new_user = User(username=username)
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
-        
-        login_user(new_user)
-        return redirect(url_for('home'))
-        
-    return render_template_string('''
-    <!DOCTYPE html>
-    <html>
-    <head><title>Register</title><style>{{ shared_styles }}</style></head>
-    <body>
-    <div class="container" style="max-width: 400px; margin-top: 50px;">
-        <h2>Register</h2>
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <div style="color: #ff5252; margin-bottom: 10px; font-weight: bold;">{{ messages[0] }}</div>
-          {% endif %}
-        {% endwith %}
-        <form method="POST">
-            <div style="margin-bottom: 10px;">Username: <input type="text" name="username" style="width: 100%; margin-top: 4px;"></div>
-            <div style="margin-bottom: 15px;">Password: <input type="password" name="password" style="width: 100%; margin-top: 4px;"></div>
-            <button type="submit">Register</button>
-        </form>
-        <p style="margin-top: 15px; text-align: center;">Already have an account? <a href="/login" style="color: #64b5f6;">Login here</a></p>
-    </div>
-    </body>
-    </html>
-    ''', shared_styles=SHARED_STYLES, theme=TEAM_THEMES['default'])
-
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
-
-@app.route('/api/update-theme', methods=['POST'])
-@login_required
-def update_theme():
-    data = request.get_json()
-    team_choice = data.get('team')
-
-    if team_choice in TEAM_THEMES:
-        current_user.favorite_team = team_choice
-        db.session.commit()
-        return jsonify({'success': True, 'team': team_choice}), 200
-
-    return jsonify({'error': 'Invalid team selection'}), 400
+def get_current_theme_data():
+  theme_key = session.get("theme", "dark")
+  if theme_key not in THEMES:
+    theme_key = "dark"
+  return theme_key, THEMES[theme_key]
 
 
 def fetch_sleeper_api(url):
@@ -1382,22 +1362,33 @@ def process_sleeper_sync(sleeper_input, selected_league_id):
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-  theme = get_current_theme()
+  theme_key, t = get_current_theme_data()
   return (
       f"""
-    <div style="font-family: sans-serif; padding: 20px; color: {theme['text']}; background: {theme['bg']};">
+    <div style="font-family: sans-serif; padding: 20px; color: {t['text']}; background: {t['bg']};">
         <h3>⚠️ App Exception Handler</h3>
         <p style="color: #ff5252;">{str(e)}</p>
-        <a href="/" style="color: #64b5f6;">Return to Calculator</a>
+        <a href="/" style="color: {t['primary']};">Return to Calculator</a>
     </div>
     """,
       500,
   )
 
 
+@app.route("/set-theme", methods=["POST"])
+def set_theme():
+  choice = request.form.get("theme_choice", "dark")
+  if choice in THEMES:
+    session["theme"] = choice
+  return redirect(request.referrer or "/")
+
+
 @app.route("/", methods=["GET", "POST"])
-@login_required
 def home():
+  theme_key, t = get_current_theme_data()
+  theme_form = render_theme_form(theme_key)
+  shared_styles = get_shared_styles(t)
+
   result = None
   league_format = session.get("league_format", "1QB")
   sleeper_input = session.get("sleeper_input", "")
@@ -1786,14 +1777,11 @@ def home():
       "youth_rebuild": "Youth & Upside / Rebuild",
   }
 
-  current_theme = get_current_theme()
-  user_team = getattr(current_user, 'favorite_team', 'default')
-
   return render_template_string(
       CALCULATOR_TEMPLATE,
-      shared_styles=SHARED_STYLES,
-      theme=current_theme,
-      user_team=user_team,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
       player_groups=active_players,
       result=result,
       league_format=league_format,
@@ -1818,8 +1806,11 @@ def home():
 
 
 @app.route("/analysis", methods=["GET", "POST"])
-@login_required
 def analysis():
+  theme_key, t = get_current_theme_data()
+  theme_form = render_theme_form(theme_key)
+  shared_styles = get_shared_styles(t)
+
   sleeper_input = session.get("sleeper_input", "")
   selected_league_id = session.get("selected_league_id", "")
   user_leagues = session.get("user_leagues", [])
@@ -1877,11 +1868,11 @@ def analysis():
 
       team["archetype"] = archetype
 
-  current_theme = get_current_theme()
   return render_template_string(
       ANALYSIS_TEMPLATE,
-      shared_styles=SHARED_STYLES,
-      theme=current_theme,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
       sleeper_input=sleeper_input,
       selected_league_id=selected_league_id,
       user_leagues=user_leagues,
@@ -1891,8 +1882,11 @@ def analysis():
 
 
 @app.route("/rookie-draft", methods=["GET", "POST"])
-@login_required
 def rookie_draft():
+  theme_key, t = get_current_theme_data()
+  theme_form = render_theme_form(theme_key)
+  shared_styles = get_shared_styles(t)
+
   sleeper_input = session.get("sleeper_input", "")
   selected_league_id = session.get("selected_league_id", "")
   user_leagues = session.get("user_leagues", [])
@@ -1911,11 +1905,11 @@ def rookie_draft():
     ):
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
 
-  current_theme = get_current_theme()
   return render_template_string(
       ROOKIE_DRAFT_TEMPLATE,
-      shared_styles=SHARED_STYLES,
-      theme=current_theme,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
       sleeper_input=sleeper_input,
       selected_league_id=selected_league_id,
       user_leagues=user_leagues,
@@ -1924,13 +1918,11 @@ def rookie_draft():
 
 
 @app.route("/api/rookies", methods=["GET"])
-@login_required
 def get_rookies():
   return jsonify(ROOKIE_PROSPECTS)
 
 
 @app.route("/api/league-draft-info", methods=["GET"])
-@login_required
 def league_draft_info():
   league_id = session.get("selected_league_id")
   if not league_id:
@@ -1975,8 +1967,11 @@ def league_draft_info():
 
 
 @app.route("/league-feed")
-@login_required
 def league_feed():
+  theme_key, t = get_current_theme_data()
+  theme_form = render_theme_form(theme_key)
+  shared_styles = get_shared_styles(t)
+
   league_id = request.args.get("league_id", "")
   transactions = []
   if league_id:
@@ -1988,26 +1983,33 @@ def league_feed():
         transactions = res
     except Exception:
       pass
-  current_theme = get_current_theme()
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
-      shared_styles=SHARED_STYLES,
-      theme=current_theme,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
       league_id=league_id,
       transactions=transactions,
   )
 
 
 @app.route("/hall-of-fame")
-@login_required
 def hall_of_fame():
-  current_theme = get_current_theme()
-  return render_template_string(HOF_TEMPLATE, shared_styles=SHARED_STYLES, theme=current_theme)
+  theme_key, t = get_current_theme_data()
+  theme_form = render_theme_form(theme_key)
+  shared_styles = get_shared_styles(t)
+
+  return render_template_string(
+      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
+  )
 
 
 @app.route("/trends")
-@login_required
 def trends():
+  theme_key, t = get_current_theme_data()
+  theme_form = render_theme_form(theme_key)
+  shared_styles = get_shared_styles(t)
+
   trend_data = {
       "Patrick Mahomes": [
           {"date": "2026-06-01", "value": 8200},
@@ -2025,16 +2027,14 @@ def trends():
           {"date": "2026-08-01", "value": 8800},
       ],
   }
-  current_theme = get_current_theme()
   return render_template_string(
       TRENDS_TEMPLATE,
-      shared_styles=SHARED_STYLES,
-      theme=current_theme,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
       trends=json.dumps(trend_data),
   )
 
 
 if __name__ == "__main__":
-  with app.app_context():
-    db.create_all()
   app.run(host="0.0.0.0", port=5000, debug=False, threaded=False, use_reloader=False)
