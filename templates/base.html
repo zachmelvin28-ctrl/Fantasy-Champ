@@ -1,0 +1,12 @@
+{% if current_user.is_authenticated %}
+<form action="{{ url_for('update_theme') }}" method="POST" class="d-inline-flex align-items-center ms-3">
+    <label for="themeSelect" class="form-label text-white me-2 mb-0 font-sm">Theme:</label>
+    <select name="theme" id="themeSelect" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="default" {% if current_user.theme == 'default' %}selected{% endif %}>Default</option>
+        <option value="ravens" {% if current_user.theme == 'ravens' %}selected{% endif %}>Ravens</option>
+        <option value="cowboys" {% if current_user.theme == 'cowboys' %}selected{% endif %}>Cowboys</option>
+        <option value="chiefs" {% if current_user.theme == 'chiefs' %}selected{% endif %}>Chiefs</option>
+        <!-- Add your other NFL team options here -->
+    </select>
+</form>
+{% endif %}
