@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ current_theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynasty Trade Calculator</title>
+    <style>
+        /* Theme Color Variables */
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333333;
+            --card-bg: #ffffff;
+            --primary-color: #007bff;
+        }
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --primary-color: #bb86fc;
+        }
+        [data-theme="auburn"] {
+            --bg-color: #f8f9fa;
+            --text-color: #0c2340;
+            --card-bg: #ffffff;
+            --primary-color: #e87722;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+        }
+        button.theme-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-bar">
+            <h1>Dynasty Trade Calculator</h1>
+            
+            <!-- Theme Selector Form -->
+            <form method="POST">
+                <select name="theme" id="theme" onchange="this.form.submit()">
+                    {% for key, theme in themes.items() %}
+                    <option value="{{ key }}" {% if key == current_theme %}selected{% endif %}>
+                        {{ theme.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <p>Sleeper league integration active. Select a theme above to instantly update your view.</p>
+        
+        <!-- Add your trade calculator UI elements below -->
+    </div>
+</body>
+</html>
