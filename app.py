@@ -506,7 +506,7 @@ CALCULATOR_TEMPLATE = """
                 </div>
                 <div style="flex: 1; min-width: 180px;">
                     <small>Specific Player Target (Optional):</small>
-                    <input type="text" name="target_player_filter" placeholder="e.g. Breece Hall" value="{{ target_player_filter }}" style="width: 100%; box-sizing: border-box; margin-top: 4px;">
+                    <input type="text" name="target_player_filter" placeholder="e.g. Bo Jackson" value="{{ target_player_filter }}" style="width: 100%; box-sizing: border-box; margin-top: 4px;">
                 </div>
             </div>
             <button type="submit" name="action" value="smart_more" class="btn-smart-more">🔄 Suggest More Trade Options</button>
@@ -1107,7 +1107,19 @@ def get_current_theme_data():
   theme_key = session.get("theme", "dark")
   if theme_key not in THEMES:
     theme_key = "dark"
-  return theme_key, THEMES[theme_key]
+  
+  # Copy theme to avoid mutating the base dictionary
+  t = dict(THEMES[theme_key])
+  
+  # Map favorite NFL team colors if selected
+  fav_team = session.get("favorite_team")
+  if fav_team and fav_team in NFL_TEAMS:
+    team_info = NFL_TEAMS[fav_team]
+    t["primary"] = team_info["primary"]
+    sec_color = team_info["secondary"]
+    t["primary_hover"] = sec_color if sec_color and sec_color != "#000000" else team_info["primary"]
+
+  return theme_key, t
 
 
 def fetch_sleeper_api(url):
@@ -2104,4 +2116,4 @@ def trends():
 
 
 if __name__ == "__main__":
-  app.run(host="0.0.0.0", port=5000, debug=False, threaded=False, use_reloader=False)
+  app.run(debug=True)
