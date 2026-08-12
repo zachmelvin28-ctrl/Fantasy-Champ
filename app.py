@@ -4,7 +4,7 @@ import os
 import ssl
 import time
 import urllib.request
-from flask import Flask, jsonify, render_template_string, request, session
+from flask import Flask, jsonify, render_template_string, request, session, redirect
 
 app = Flask(__name__)
 app.secret_key = "dynasty_trade_calc_secret_key_2026"
@@ -77,13 +77,48 @@ THEMES = {
     },
 }
 
+NFL_TEAMS = {
+    "ARI": {"name": "Arizona Cardinals", "primary": "#97233F", "secondary": "#000000"},
+    "ATL": {"name": "Atlanta Falcons", "primary": "#A71930", "secondary": "#000000"},
+    "BAL": {"name": "Baltimore Ravens", "primary": "#241773", "secondary": "#000000"},
+    "BUF": {"name": "Buffalo Bills", "primary": "#00338D", "secondary": "#C60C30"},
+    "CAR": {"name": "Carolina Panthers", "primary": "#0085CA", "secondary": "#101820"},
+    "CHI": {"name": "Chicago Bears", "primary": "#0B162A", "secondary": "#C83803"},
+    "CIN": {"name": "Cincinnati Bengals", "primary": "#FB4F14", "secondary": "#000000"},
+    "CLE": {"name": "Cleveland Browns", "primary": "#311D00", "secondary": "#FF3C00"},
+    "DAL": {"name": "Dallas Cowboys", "primary": "#003594", "secondary": "#041E42"},
+    "DEN": {"name": "Denver Broncos", "primary": "#FB4F14", "secondary": "#002244"},
+    "DET": {"name": "Detroit Lions", "primary": "#0076B6", "secondary": "#B0B7BC"},
+    "GB": {"name": "Green Bay Packers", "primary": "#203731", "secondary": "#FFB612"},
+    "HOU": {"name": "Houston Texans", "primary": "#03202F", "secondary": "#A71930"},
+    "IND": {"name": "Indianapolis Colts", "primary": "#002C5F", "secondary": "#A2AAAD"},
+    "JAX": {"name": "Jacksonville Jaguars", "primary": "#006778", "secondary": "#D7A22A"},
+    "KC": {"name": "Kansas City Chiefs", "primary": "#E31837", "secondary": "#FFB81C"},
+    "LV": {"name": "Las Vegas Raiders", "primary": "#000000", "secondary": "#A5ACAF"},
+    "LAC": {"name": "Los Angeles Chargers", "primary": "#0080C6", "secondary": "#FFC20E"},
+    "LAR": {"name": "Los Angeles Rams", "primary": "#003594", "secondary": "#FFA300"},
+    "MIA": {"name": "Miami Dolphins", "primary": "#008E97", "secondary": "#FC4C02"},
+    "MIN": {"name": "Minnesota Vikings", "primary": "#4F2683", "secondary": "#FFC62F"},
+    "NE": {"name": "New England Patriots", "primary": "#002244", "secondary": "#C60C30"},
+    "NO": {"name": "New Orleans Saints", "primary": "#D3BC8D", "secondary": "#101820"},
+    "NYG": {"name": "New York Giants", "primary": "#0B2265", "secondary": "#A71930"},
+    "NYJ": {"name": "New York Jets", "primary": "#125740", "secondary": "#000000"},
+    "PHI": {"name": "Philadelphia Eagles", "primary": "#004C54", "secondary": "#A5ACAF"},
+    "PIT": {"name": "Pittsburgh Steelers", "primary": "#FFB612", "secondary": "#101820"},
+    "SF": {"name": "San Francisco 49ers", "primary": "#AA0000", "secondary": "#B3995D"},
+    "SEA": {"name": "Seattle Seahawks", "primary": "#002244", "secondary": "#69BE28"},
+    "TB": {"name": "Tampa Bay Buccaneers", "primary": "#D50A0A", "secondary": "#0A0A08"},
+    "TEN": {"name": "Tennessee Titans", "primary": "#0C2340", "secondary": "#4B92DB"},
+    "WAS": {"name": "Washington Commanders", "primary": "#5A1414", "secondary": "#FFB612"},
+}
+
 
 def get_shared_styles(t):
   return f"""
     body {{ font-family: -apple-system, sans-serif; padding: 15px; background: {t['bg']}; color: {t['text']}; margin: 0; transition: background 0.3s, color 0.3s; }}
     .container {{ max-width: 650px; margin: 0 auto; background: {t['container']}; padding: 20px; border-radius: 12px; border: 1px solid {t['border']}; }}
     h2 {{ text-align: center; color: {t['text']}; margin-top: 0; }}
-    .theme-bar {{ display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px; gap: 8px; font-size: 0.85em; }}
+    .theme-bar {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; font-size: 0.85em; flex-wrap: wrap; }}
     .theme-bar select {{ background: {t['input_bg']}; color: {t['text']}; border: 1px solid {t['border']}; padding: 4px 8px; border-radius: 4px; }}
     .nav-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; background: {t['panel']}; padding: 6px; border-radius: 8px; border: 1px solid {t['border']}; overflow-x: auto; }}
     .nav-btn {{ flex: 1; text-align: center; padding: 10px; background: {t['input_bg']}; color: {t['subtext']}; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.9em; white-space: nowrap; }}
@@ -106,20 +141,34 @@ def get_shared_styles(t):
 """
 
 
-def render_theme_form(current_theme):
+def render_theme_form(current_theme, current_team=""):
   options = ""
   for key, data in THEMES.items():
     selected = "selected" if key == current_theme else ""
     options += (
         f'<option value="{key}" {selected}>{data["name"]}</option>'
     )
+  
+  team_options = '<option value="">Select Favorite Team</option>'
+  for code, tdata in NFL_TEAMS.items():
+    selected = "selected" if code == current_team else ""
+    team_options += f'<option value="{code}" {selected}>{tdata["name"]}</option>'
+
   return f"""
     <div class="theme-bar">
-        <form method="POST" action="/set-theme" style="margin:0; display:flex; align-items:center; gap:6px;">
-            <label>🎨 Theme:</label>
-            <select name="theme_choice" onchange="this.form.submit()">
-                {options}
-            </select>
+        <form method="POST" action="/set-preference" style="margin:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <label>🎨 Theme:</label>
+                <select name="theme_choice" onchange="this.form.submit()">
+                    {options}
+                </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <label>🛡️ Team:</label>
+                <select name="favorite_team" onchange="this.form.submit()">
+                    {team_options}
+                </select>
+            </div>
         </form>
     </div>
     """
@@ -1363,6 +1412,7 @@ def process_sleeper_sync(sleeper_input, selected_league_id):
 @app.errorhandler(Exception)
 def handle_exception(e):
   theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
   return (
       f"""
     <div style="font-family: sans-serif; padding: 20px; color: {t['text']}; background: {t['bg']};">
@@ -1383,10 +1433,22 @@ def set_theme():
   return redirect(request.referrer or "/")
 
 
+@app.route("/set-preference", methods=["POST"])
+def set_preference():
+  choice = request.form.get("theme_choice")
+  if choice in THEMES:
+    session["theme"] = choice
+  fav_team = request.form.get("favorite_team")
+  if fav_team in NFL_TEAMS or fav_team == "":
+    session["favorite_team"] = fav_team
+  return redirect(request.referrer or "/")
+
+
 @app.route("/", methods=["GET", "POST"])
 def home():
   theme_key, t = get_current_theme_data()
-  theme_form = render_theme_form(theme_key)
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
   result = None
@@ -1808,7 +1870,8 @@ def home():
 @app.route("/analysis", methods=["GET", "POST"])
 def analysis():
   theme_key, t = get_current_theme_data()
-  theme_form = render_theme_form(theme_key)
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
   sleeper_input = session.get("sleeper_input", "")
@@ -1884,7 +1947,8 @@ def analysis():
 @app.route("/rookie-draft", methods=["GET", "POST"])
 def rookie_draft():
   theme_key, t = get_current_theme_data()
-  theme_form = render_theme_form(theme_key)
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
   sleeper_input = session.get("sleeper_input", "")
@@ -1969,7 +2033,8 @@ def league_draft_info():
 @app.route("/league-feed")
 def league_feed():
   theme_key, t = get_current_theme_data()
-  theme_form = render_theme_form(theme_key)
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
   league_id = request.args.get("league_id", "")
@@ -1996,7 +2061,8 @@ def league_feed():
 @app.route("/hall-of-fame")
 def hall_of_fame():
   theme_key, t = get_current_theme_data()
-  theme_form = render_theme_form(theme_key)
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
   return render_template_string(
@@ -2007,7 +2073,8 @@ def hall_of_fame():
 @app.route("/trends")
 def trends():
   theme_key, t = get_current_theme_data()
-  theme_form = render_theme_form(theme_key)
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
   trend_data = {
