@@ -119,8 +119,8 @@
             <h1>Dynasty Trade Calculator</h1>
             
             <!-- Theme Selector Form -->
-            <form method="POST">
-                <select name="theme" id="theme" onchange="this.form.submit()">
+            <form method="POST" id="theme-form">
+                <select name="theme" id="theme">
                     {% for key, theme in themes.items() %}
                     <option value="{{ key }}" {% if key == current_theme %}selected{% endif %}>
                         {{ theme.name }}
@@ -134,5 +134,28 @@
         
         <!-- Add your trade calculator UI elements below -->
     </div>
+
+    <script>
+        const themeSelect = document.getElementById('theme');
+        
+        themeSelect.addEventListener('change', function() {
+            const selectedTheme = this.value;
+            // Instantly apply theme attribute to html tag
+            document.documentElement.setAttribute('data-theme', selectedTheme);
+            // Save state client-side
+            localStorage.setItem('current_theme', selectedTheme);
+            // Submit form to update Flask backend
+            document.getElementById('theme-form').submit();
+        });
+
+        // Load saved theme on page load if available
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('current_theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                themeSelect.value = savedTheme;
+            }
+        });
+    </script>
 </body>
 </html>
