@@ -586,8 +586,26 @@ CALCULATOR_TEMPLATE = """
 
     {% if result %}
         <div class="result">
-            <p><b>Team A Total:</b> {{ result.team_a_total }} pts</p>
-            <p><b>Team B Total:</b> {{ result.team_b_total }} pts</p>
+            <div style="display: flex; justify-content: space-around; margin-bottom: 15px; text-align: left; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 240px;">
+                    <b style="color: {{ t['primary'] }};">{{ selected_owner_a or 'Team A' }} Gives:</b>
+                    <ul style="margin: 5px 0; padding-left: 15px; font-size: 0.9em;">
+                        {% for item in result.team_a_items %}
+                            <li>{{ item.name }} ({{ "{:,}".format(item.val) }} pts)</li>
+                        {% endfor %}
+                    </ul>
+                    <p style="margin: 5px 0;"><b>Total:</b> {{ "{:,}".format(result.team_a_total) }} pts</p>
+                </div>
+                <div style="flex: 1; min-width: 240px; border-left: 1px solid {{ t['border'] }}; padding-left: 10px;">
+                    <b style="color: {{ t['primary'] }};">{{ selected_owner_b or 'Team B' }} Gives:</b>
+                    <ul style="margin: 5px 0; padding-left: 15px; font-size: 0.9em;">
+                        {% for item in result.team_b_items %}
+                            <li>{{ item.name }} ({{ "{:,}".format(item.val) }} pts)</li>
+                        {% endfor %}
+                    </ul>
+                    <p style="margin: 5px 0;"><b>Total:</b> {{ "{:,}".format(result.team_b_total) }} pts</p>
+                </div>
+            </div>
 
             {% if result.stud_msg %}
                 <div class="note">{{ result.stud_msg }}</div>
@@ -620,14 +638,7 @@ CALCULATOR_TEMPLATE = """
             <button type="button" class="btn-copy" onclick="copyTradeSummary()">📋 Copy Trade Summary</button>
         </div>
 
-        <div id="summary-text" style="display:none;">🏈 DYNASTY TRADE SUMMARY
-Team A Total: {{ result.team_a_total }} pts
-Team B Total: {{ result.team_b_total }} pts
-{% if result.stud_msg %}{{ result.stud_msg }}
-{% endif %}{% if result.counter_msg %}{{ result.counter_msg }}
-{% endif %}Result: {{ result.message }}
-{% if result.balancer_msg %}{{ result.balancer_msg }}{% endif %}
-        </div>
+        <div id="summary-text" style="display:none;">{{ result.itemized_summary_text }}</div>
     {% endif %}
 </div>
 
@@ -1108,10 +1119,8 @@ def get_current_theme_data():
   if theme_key not in THEMES:
     theme_key = "dark"
   
-  # Copy theme to avoid mutating the base dictionary
   t = dict(THEMES[theme_key])
   
-  # Map favorite NFL team colors if selected
   fav_team = session.get("favorite_team")
   if fav_team and fav_team in NFL_TEAMS:
     team_info = NFL_TEAMS[fav_team]
@@ -1725,20 +1734,25 @@ def home():
             start_idx = (smart_page * page_size) % len(all_candidates)
             smart_suggestions = all_candidates[start_idx : start_idx + page_size]
 
-    raw_a = (
-        sum(flat_players.get(item, 800) for item in selected_assets["team_a"])
-        + a_custom_num
-    )
-    raw_b = (
-        sum(flat_players.get(item, 800) for item in selected_assets["team_b"])
-        + b_custom_num
-    )
-    count_a = len(selected_assets["team_a"]) + (
-        1 if a_cname and a_custom_num > 0 else 0
-    )
-    count_b = len(selected_assets["team_b"]) + (
-        1 if b_cname and b_custom_num > 0 else 0
-    )
+    # Build itemized asset lists
+    team_a_items = []
+    for item in selected_assets["team_a"]:
+      val = flat_players.get(item, 800)
+      team_a_items.append({"name": item, "val": val})
+    if a_cname and a_custom_num > 0:
+      team_a_items.append({"name": a_cname, "val": a_custom_num})
+
+    team_b_items = []
+    for item in selected_assets["team_b"]:
+      val = flat_players.get(item, 800)
+      team_b_items.append({"name": item, "val": val})
+    if b_cname and b_custom_num > 0:
+      team_b_items.append({"name": b_cname, "val": b_custom_num})
+
+    raw_a = sum(i["val"] for i in team_a_items)
+    raw_b = sum(i["val"] for i in team_b_items)
+    count_a = len(team_a_items)
+    count_b = len(team_b_items)
 
     temp_a_tot, temp_b_tot = raw_a, raw_b
     if count_a > 0 and count_b > 0 and count_a != count_b:
@@ -1772,14 +1786,25 @@ def home():
         selected_assets[losing_team].append(best_asset)
         counter_msg = f"💡 Counter-Offer Added: Automatically added {best_asset} ({available_pool[best_asset]:,} pts)."
 
-      raw_a = (
-          sum(flat_players.get(item, 800) for item in selected_assets["team_a"])
-          + a_custom_num
-      )
-      raw_b = (
-          sum(flat_players.get(item, 800) for item in selected_assets["team_b"])
-          + b_custom_num
-      )
+        # Re-build items after counter offer addition
+        team_a_items = []
+        for item in selected_assets["team_a"]:
+          val = flat_players.get(item, 800)
+          team_a_items.append({"name": item, "val": val})
+        if a_cname and a_custom_num > 0:
+          team_a_items.append({"name": a_cname, "val": a_custom_num})
+
+        team_b_items = []
+        for item in selected_assets["team_b"]:
+          val = flat_players.get(item, 800)
+          team_b_items.append({"name": item, "val": val})
+        if b_cname and b_custom_num > 0:
+          team_b_items.append({"name": b_cname, "val": b_custom_num})
+
+        raw_a = sum(i["val"] for i in team_a_items)
+        raw_b = sum(i["val"] for i in team_b_items)
+        count_a = len(team_a_items)
+        count_b = len(team_b_items)
 
     stud_msg = ""
     team_a_total = raw_a
@@ -1826,7 +1851,36 @@ def home():
     else:
       msg = f"🏆 Team B wins by {diff:,} pts ({diff_pct:.1f}% margin)."
 
+    # Construct clean itemized text for clipboard copy
+    owner_a_label = selected_owner_a if selected_owner_a else "Team A"
+    owner_b_label = selected_owner_b if selected_owner_b else "Team B"
+
+    summary_lines = [
+        "🏈 DYNASTY TRADE SUMMARY",
+        f"--- {owner_a_label} Gives ---",
+    ]
+    for item in team_a_items:
+      summary_lines.append(f"• {item['name']} ({item['val']:,} pts)")
+    summary_lines.append(f"Total: {team_a_total:,} pts\n")
+
+    summary_lines.append(f"--- {owner_b_label} Gives ---")
+    for item in team_b_items:
+      summary_lines.append(f"• {item['name']} ({item['val']:,} pts)")
+    summary_lines.append(f"Total: {team_b_total:,} pts\n")
+
+    if stud_msg:
+      summary_lines.append(stud_msg)
+    if counter_msg:
+      summary_lines.append(counter_msg)
+    summary_lines.append(f"Result: {msg}")
+    if balancer_msg:
+      summary_lines.append(balancer_msg)
+
+    itemized_summary_text = "\n".join(summary_lines)
+
     result = {
+        "team_a_items": team_a_items,
+        "team_b_items": team_b_items,
         "team_a_total": team_a_total,
         "team_b_total": team_b_total,
         "message": msg,
@@ -1834,6 +1888,7 @@ def home():
         "balancer_msg": balancer_msg,
         "counter_msg": counter_msg,
         "smart_suggestions": smart_suggestions,
+        "itemized_summary_text": itemized_summary_text,
     }
 
   strategy_labels = {
@@ -2000,120 +2055,104 @@ def get_rookies():
 
 @app.route("/api/league-draft-info", methods=["GET"])
 def league_draft_info():
-  league_id = session.get("selected_league_id")
-  if not league_id:
-    return jsonify({"success": False, "message": "No league selected"})
+  selected_league_id = session.get("selected_league_id")
+  if not selected_league_id:
+    return jsonify({"success": False})
 
-  drafts = fetch_sleeper_api(
-      f"https://api.sleeper.app/v1/league/{league_id}/drafts"
-  )
-  if not drafts or not isinstance(drafts, list):
-    return jsonify({"success": False, "message": "No draft found for league"})
+  league_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}")
+  users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/users")
+  rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters")
 
-  draft = next((d for d in drafts if d.get("status") == "pre"), drafts[0])
-  draft_order = draft.get("draft_order", {})
-  settings = draft.get("settings", {})
-  rounds = settings.get("rounds", 4)
-  teams = settings.get("teams", 10)
+  if not league_data or not users_data or not rosters_data:
+    return jsonify({"success": False})
 
-  users_data = (
-      fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{league_id}/users"
-      )
-      or []
-  )
-  user_id_to_name = {
-      u["user_id"]: u.get("display_name", "Unknown")
-      for u in users_data
-      if "user_id" in u
-  }
+  user_map = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data if "user_id" in u}
+  roster_id_to_owner = {}
+  for r in rosters_data:
+    r_id = r.get("roster_id")
+    oid = r.get("owner_id")
+    if r_id and oid in user_map:
+      roster_id_to_owner[r_id] = user_map[oid]
 
-  slot_to_owner = {}
-  if isinstance(draft_order, dict):
-    for uid, slot in draft_order.items():
-      owner_name = user_id_to_name.get(uid, f"Team {slot}")
-      slot_to_owner[int(slot)] = owner_name
+    draft_id = league_data.get("draft_id")
+    if not draft_id:
+      return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
 
-  return jsonify({
-      "success": True,
-      "rounds": rounds,
-      "teams": teams,
-      "slot_to_owner": slot_to_owner,
-  })
+    draft_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}")
+    if not draft_data:
+      return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
+
+    slot_to_owner = {}
+    draft_settings = draft_data.get("settings", {})
+    teams_count = draft_settings.get("teams", len(rosters_data))
+    
+    draft_order = draft_data.get("draft_order")
+    if isinstance(draft_order, dict):
+      for owner_id, slot_num in draft_order.items():
+        owner_name = user_map.get(owner_id, "Unknown")
+        slot_to_owner[slot_num] = owner_name
+
+    return jsonify({
+        "success": True,
+        "teams": teams_count,
+        "slot_to_owner": slot_to_owner
+    })
 
 
-@app.route("/league-feed")
+@app.route("/league-feed", methods=["GET"])
 def league_feed():
   theme_key, t = get_current_theme_data()
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
-  league_id = request.args.get("league_id", "")
+  league_id = request.args.get("league_id", session.get("selected_league_id", ""))
   transactions = []
   if league_id:
-    try:
-      res = fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
-      )
-      if isinstance(res, list):
-        transactions = res
-    except Exception:
-      pass
+    tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
+    if isinstance(tx_data, list):
+      transactions = tx_data
+
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
       league_id=league_id,
-      transactions=transactions,
+      transactions=transactions
   )
 
 
-@app.route("/hall-of-fame")
+@app.route("/hall-of-fame", methods=["GET"])
 def hall_of_fame():
   theme_key, t = get_current_theme_data()
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-
-  return render_template_string(
-      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
-  )
+  return render_template_string(HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles)
 
 
-@app.route("/trends")
+@app.route("/trends", methods=["GET"])
 def trends():
   theme_key, t = get_current_theme_data()
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-
-  trend_data = {
-      "Patrick Mahomes": [
-          {"date": "2026-06-01", "value": 8200},
-          {"date": "2026-07-01", "value": 8400},
-          {"date": "2026-08-01", "value": 8500},
-      ],
-      "Caleb Williams": [
-          {"date": "2026-06-01", "value": 7000},
-          {"date": "2026-07-01", "value": 7300},
-          {"date": "2026-08-01", "value": 7500},
-      ],
-      "Breece Hall": [
-          {"date": "2026-06-01", "value": 8600},
-          {"date": "2026-07-01", "value": 8700},
-          {"date": "2026-08-01", "value": 8800},
-      ],
+  
+  sample_trends = {
+      "Ja'Marr Chase (WR)": [{"value": 9000}, {"value": 9300}, {"value": 9500}],
+      "Bijan Robinson (RB)": [{"value": 8500}, {"value": 8700}, {"value": 8900}],
+      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
+      "Brock Bowers (TE)": [{"value": 7200}, {"value": 7500}, {"value": 7800}]
   }
   return render_template_string(
       TRENDS_TEMPLATE,
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
-      trends=json.dumps(trend_data),
+      trends=json.dumps(sample_trends)
   )
 
 
 if __name__ == "__main__":
-  app.run(debug=True)
+  app.run(debug=True, port=5000)
