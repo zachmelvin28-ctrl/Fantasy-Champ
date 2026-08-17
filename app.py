@@ -145,10 +145,8 @@ def render_theme_form(current_theme, current_team=""):
   options = ""
   for key, data in THEMES.items():
     selected = "selected" if key == current_theme else ""
-    options += (
-        f'<option value="{key}" {selected}>{data["name"]}</option>'
-    )
-  
+    options += f'<option value="{key}" {selected}>{data["name"]}</option>'
+
   team_options = '<option value="">Select Favorite Team</option>'
   for code, tdata in NFL_TEAMS.items():
     selected = "selected" if code == current_team else ""
@@ -1022,7 +1020,7 @@ LEAGUE_FEED_TEMPLATE = """
             <div style="margin-top: 15px;">
                 {% for tx in transactions %}
                     <div style="background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid {{ t['border'] }};">
-                        <p style="color: {{ t['primary'] }}; font-weight: bold; margin: 0;">Type: {{ tx.type }}</p>
+                        <p style="color: {{ t['primary'] }}; font-weight: bold; margin: 0;">Type: {{ tx.type }} (Week {{ tx.week }})</p>
                     </div>
                 {% endfor %}
             </div>
@@ -1118,15 +1116,19 @@ def get_current_theme_data():
   theme_key = session.get("theme", "dark")
   if theme_key not in THEMES:
     theme_key = "dark"
-  
+
   t = dict(THEMES[theme_key])
-  
+
   fav_team = session.get("favorite_team")
   if fav_team and fav_team in NFL_TEAMS:
     team_info = NFL_TEAMS[fav_team]
     t["primary"] = team_info["primary"]
     sec_color = team_info["secondary"]
-    t["primary_hover"] = sec_color if sec_color and sec_color != "#000000" else team_info["primary"]
+    t["primary_hover"] = (
+        sec_color
+        if sec_color and sec_color != "#000000"
+        else team_info["primary"]
+    )
 
   return theme_key, t
 
@@ -1191,7 +1193,10 @@ def fetch_live_fantasycalc_values(is_superflex=False):
       if os.path.exists(VALUES_CACHE_FILE):
         with open(VALUES_CACHE_FILE, "r") as f:
           cache_data = json.load(f)
-      cache_data[cache_key] = {"timestamp": time.time(), "players": live_players}
+      cache_data[cache_key] = {
+          "timestamp": time.time(),
+          "players": live_players,
+      }
       with open(VALUES_CACHE_FILE, "w") as f:
         json.dump(cache_data, f)
     except Exception:
@@ -1852,7 +1857,6 @@ def home():
     else:
       msg = f"🏆 Team B wins by {diff:,} pts ({diff_pct:.1f}% margin)."
 
-    # Construct clean itemized text for clipboard copy
     owner_a_label = selected_owner_a if selected_owner_a else "Team A"
     owner_b_label = selected_owner_b if selected_owner_b else "Team B"
 
@@ -2060,14 +2064,24 @@ def league_draft_info():
   if not selected_league_id:
     return jsonify({"success": False})
 
-  league_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}")
-  users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/users")
-  rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters")
+  league_data = fetch_sleeper_api(
+      f"https://api.sleeper.app/v1/league/{selected_league_id}"
+  )
+  users_data = fetch_sleeper_api(
+      f"https://api.sleeper.app/v1/league/{selected_league_id}/users"
+  )
+  rosters_data = fetch_sleeper_api(
+      f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters"
+  )
 
   if not league_data or not users_data or not rosters_data:
     return jsonify({"success": False})
 
-  user_map = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data if "user_id" in u}
+  user_map = {
+      u["user_id"]: u.get("display_name", "Unknown")
+      for u in users_data
+      if "user_id" in u
+  }
   roster_id_to_owner = {}
   for r in rosters_data:
     r_id = r.get("roster_id")
@@ -2077,16 +2091,20 @@ def league_draft_info():
 
   draft_id = league_data.get("draft_id")
   if not draft_id:
-    return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
+    return jsonify(
+        {"success": True, "teams": len(rosters_data), "slot_to_owner": {}}
+    )
 
   draft_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}")
   if not draft_data:
-    return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
+    return jsonify(
+        {"success": True, "teams": len(rosters_data), "slot_to_owner": {}}
+    )
 
   slot_to_owner = {}
   draft_settings = draft_data.get("settings", {})
   teams_count = draft_settings.get("teams", len(rosters_data))
-  
+
   draft_order = draft_data.get("draft_order")
   if isinstance(draft_order, dict):
     for owner_id, slot_num in draft_order.items():
@@ -2096,7 +2114,7 @@ def league_draft_info():
   return jsonify({
       "success": True,
       "teams": teams_count,
-      "slot_to_owner": slot_to_owner
+      "slot_to_owner": slot_to_owner,
   })
 
 
@@ -2107,10 +2125,14 @@ def league_feed():
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
-  league_id = request.args.get("league_id", session.get("selected_league_id", ""))
+  league_id = request.args.get(
+      "league_id", session.get("selected_league_id", "")
+  )
   transactions = []
   if league_id:
-    tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
+    tx_data = fetch_sleeper_api(
+        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
+    )
     if isinstance(tx_data, list):
       transactions = tx_data
 
@@ -2130,6 +2152,7 @@ def hall_of_fame():
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
+
   return render_template_string(
       HOF_TEMPLATE,
       t=t,
@@ -2146,11 +2169,16 @@ def trends():
   shared_styles = get_shared_styles(t)
 
   sample_trends = {
-      "Josh Allen (QB)": [{"date": "June", "value": 8200}, {"date": "July", "value": 8300}, {"date": "August", "value": 8400}],
-      "Bijan Robinson (RB)": [{"date": "June", "value": 8600}, {"date": "July", "value": 8750}, {"date": "August", "value": 8900}],
-      "Ja'Marr Chase (WR)": [{"date": "June", "value": 9200}, {"date": "July", "value": 9300}, {"date": "August", "value": 9500}],
-      "Brock Bowers (TE)": [{"date": "June", "value": 7400}, {"date": "July", "value": 7600}, {"date": "August", "value": 7800}],
+      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
+      "Patrick Mahomes (QB)": [
+          {"value": 8400},
+          {"value": 8450},
+          {"value": 8500},
+      ],
+      "Bijan Robinson (RB)": [{"value": 8700}, {"value": 8800}, {"value": 8900}],
+      "Ja'Marr Chase (WR)": [{"value": 9300}, {"value": 9400}, {"value": 9500}],
   }
+
   return render_template_string(
       TRENDS_TEMPLATE,
       t=t,
@@ -2161,4 +2189,4 @@ def trends():
 
 
 if __name__ == "__main__":
-  app.run(debug=True)
+  app.run(debug=True, port=5000)
