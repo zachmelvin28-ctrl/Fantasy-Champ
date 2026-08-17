@@ -2074,29 +2074,29 @@ def league_draft_info():
     if r_id and oid in user_map:
       roster_id_to_owner[r_id] = user_map[oid]
 
-    draft_id = league_data.get("draft_id")
-    if not draft_id:
-      return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
+  draft_id = league_data.get("draft_id")
+  if not draft_id:
+    return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
 
-    draft_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}")
-    if not draft_data:
-      return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
+  draft_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}")
+  if not draft_data:
+    return jsonify({"success": True, "teams": len(rosters_data), "slot_to_owner": {}})
 
-    slot_to_owner = {}
-    draft_settings = draft_data.get("settings", {})
-    teams_count = draft_settings.get("teams", len(rosters_data))
-    
-    draft_order = draft_data.get("draft_order")
-    if isinstance(draft_order, dict):
-      for owner_id, slot_num in draft_order.items():
-        owner_name = user_map.get(owner_id, "Unknown")
-        slot_to_owner[slot_num] = owner_name
+  slot_to_owner = {}
+  draft_settings = draft_data.get("settings", {})
+  teams_count = draft_settings.get("teams", len(rosters_data))
+  
+  draft_order = draft_data.get("draft_order")
+  if isinstance(draft_order, dict):
+    for owner_id, slot_num in draft_order.items():
+      owner_name = user_map.get(owner_id, "Unknown")
+      slot_to_owner[slot_num] = owner_name
 
-    return jsonify({
-        "success": True,
-        "teams": teams_count,
-        "slot_to_owner": slot_to_owner
-    })
+  return jsonify({
+      "success": True,
+      "teams": teams_count,
+      "slot_to_owner": slot_to_owner
+  })
 
 
 @app.route("/league-feed", methods=["GET"])
@@ -2111,8 +2111,10 @@ def league_feed():
   if league_id:
     tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
     if isinstance(tx_data, list):
-      transactions = tx_data
-
+      for tx in tx_data:
+        t_type = tx.get("type", "transaction")
+        transactions.append({"type": t_type})
+  
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
@@ -2139,19 +2141,14 @@ def trends():
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
   
-  sample_trends = {
-      "Ja'Marr Chase (WR)": [{"value": 9000}, {"value": 9300}, {"value": 9500}],
-      "Bijan Robinson (RB)": [{"value": 8500}, {"value": 8700}, {"value": 8900}],
-      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
-      "Brock Bowers (TE)": [{"value": 7200}, {"value": 7500}, {"value": 7800}]
+  trend_data = {
+      "Ja'Marr Chase (WR)": [{"month": "June", "value": 9200}, {"month": "July", "value": 9350}, {"month": "August", "value": 9500}],
+      "Justin Jefferson (WR)": [{"month": "June", "value": 9300}, {"month": "July", "value": 9350}, {"month": "August", "value": 9400}],
+      "Bijan Robinson (RB)": [{"month": "June", "value": 8500}, {"month": "July", "value": 8700}, {"month": "August", "value": 8900}],
+      "Brock Bowers (TE)": [{"month": "June", "value": 7200}, {"month": "July", "value": 7500}, {"month": "August", "value": 7800}]
   }
-  return render_template_string(
-      TRENDS_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      trends=json.dumps(sample_trends)
-  )
+  
+  return render_template_string(TRENDS_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles, trends=json.dumps(trend_data))
 
 
 if __name__ == "__main__":
