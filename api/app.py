@@ -5,9 +5,13 @@ import ssl
 import time
 import urllib.request
 from flask import Flask, jsonify, render_template_string, request, session, redirect
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 app.secret_key = "dynasty_trade_calc_secret_key_2026"
+
+# Apply ProxyFix middleware for correct handling behind proxies (e.g., Vercel, Nginx, Heroku)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Use /tmp directory on Vercel to avoid read-only file system errors
 PLAYER_CACHE_FILE = (
@@ -2129,13 +2133,6 @@ def league_feed():
       "league_id", session.get("selected_league_id", "")
   )
   transactions = []
-  if league_id:
-    tx_data = fetch_sleeper_api(
-        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
-    )
-    if isinstance(tx_data, list):
-      transactions = tx_data
-
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
@@ -2146,47 +2143,5 @@ def league_feed():
   )
 
 
-@app.route("/hall-of-fame", methods=["GET"])
-def hall_of_fame():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-
-  return render_template_string(
-      HOF_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-  )
-
-
-@app.route("/trends", methods=["GET"])
-def trends():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-
-  sample_trends = {
-      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
-      "Patrick Mahomes (QB)": [
-          {"value": 8400},
-          {"value": 8450},
-          {"value": 8500},
-      ],
-      "Bijan Robinson (RB)": [{"value": 8700}, {"value": 8800}, {"value": 8900}],
-      "Ja'Marr Chase (WR)": [{"value": 9300}, {"value": 9400}, {"value": 9500}],
-  }
-
-  return render_template_string(
-      TRENDS_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      trends=json.dumps(sample_trends),
-  )
-
-
 if __name__ == "__main__":
-  app.run(debug=True, port=5000)
+  app.run(debug=True)
