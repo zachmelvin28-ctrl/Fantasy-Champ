@@ -1557,6 +1557,7 @@ def home():
   if request.method == "POST" and request.form.get("action") not in [
       "sync",
       "select_league",
+      "clear_trade",
   ]:
     flat_players = {}
     for pos, p_dict in active_players.items():
@@ -2111,17 +2112,15 @@ def league_feed():
   if league_id:
     tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
     if isinstance(tx_data, list):
-      for tx in tx_data:
-        t_type = tx.get("type", "transaction")
-        transactions.append({"type": t_type})
-  
+      transactions = tx_data
+
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
       league_id=league_id,
-      transactions=transactions
+      transactions=transactions,
   )
 
 
@@ -2140,15 +2139,19 @@ def trends():
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-  
-  trend_data = {
-      "Ja'Marr Chase (WR)": [{"month": "June", "value": 9200}, {"month": "July", "value": 9350}, {"month": "August", "value": 9500}],
-      "Justin Jefferson (WR)": [{"month": "June", "value": 9300}, {"month": "July", "value": 9350}, {"month": "August", "value": 9400}],
-      "Bijan Robinson (RB)": [{"month": "June", "value": 8500}, {"month": "July", "value": 8700}, {"month": "August", "value": 8900}],
-      "Brock Bowers (TE)": [{"month": "June", "value": 7200}, {"month": "July", "value": 7500}, {"month": "August", "value": 7800}]
+  mock_trends = {
+      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
+      "Ja'Marr Chase (WR)": [{"value": 9100}, {"value": 9300}, {"value": 9500}],
+      "Bijan Robinson (RB)": [{"value": 8700}, {"value": 8800}, {"value": 8900}],
+      "Brock Bowers (TE)": [{"value": 7400}, {"value": 7600}, {"value": 7800}]
   }
-  
-  return render_template_string(TRENDS_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles, trends=json.dumps(trend_data))
+  return render_template_string(
+      TRENDS_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      trends=json.dumps(mock_trends)
+  )
 
 
 if __name__ == "__main__":
