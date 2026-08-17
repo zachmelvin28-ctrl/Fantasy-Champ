@@ -308,76 +308,16 @@ DEFAULT_PLAYERS = {
 }
 
 ROOKIE_PROSPECTS = [
-    {
-        "id": 1,
-        "name": "Jeremiyah Love",
-        "pos": "RB",
-        "team": "Arizona Cardinals",
-        "rank": 1,
-    },
-    {
-        "id": 2,
-        "name": "Carnell Tate",
-        "pos": "WR",
-        "team": "Tennessee Titans",
-        "rank": 2,
-    },
-    {
-        "id": 3,
-        "name": "Jordyn Tyson",
-        "pos": "WR",
-        "team": "New Orleans Saints",
-        "rank": 3,
-    },
-    {
-        "id": 4,
-        "name": "Makai Lemon",
-        "pos": "WR",
-        "team": "Philadelphia Eagles",
-        "rank": 4,
-    },
-    {
-        "id": 5,
-        "name": "Jadarian Price",
-        "pos": "RB",
-        "team": "Seattle Seahawks",
-        "rank": 5,
-    },
-    {
-        "id": 6,
-        "name": "KC Concepcion",
-        "pos": "WR",
-        "team": "Cleveland Browns",
-        "rank": 6,
-    },
-    {
-        "id": 7,
-        "name": "Fernando Mendoza",
-        "pos": "QB",
-        "team": "Las Vegas Raiders",
-        "rank": 7,
-    },
-    {
-        "id": 8,
-        "name": "Kenyon Sadiq",
-        "pos": "TE",
-        "team": "New York Jets",
-        "rank": 8,
-    },
-    {
-        "id": 9,
-        "name": "Omar Cooper Jr.",
-        "pos": "WR",
-        "team": "New York Jets",
-        "rank": 9,
-    },
-    {
-        "id": 10,
-        "name": "Denzel Boston",
-        "pos": "WR",
-        "team": "Cleveland Browns",
-        "rank": 10,
-    },
+    {"id": 1, "name": "Jeremiyah Love", "pos": "RB", "team": "Arizona Cardinals", "rank": 1},
+    {"id": 2, "name": "Carnell Tate", "pos": "WR", "team": "Tennessee Titans", "rank": 2},
+    {"id": 3, "name": "Jordyn Tyson", "pos": "WR", "team": "New Orleans Saints", "rank": 3},
+    {"id": 4, "name": "Makai Lemon", "pos": "WR", "team": "Philadelphia Eagles", "rank": 4},
+    {"id": 5, "name": "Jadarian Price", "pos": "RB", "team": "Seattle Seahawks", "rank": 5},
+    {"id": 6, "name": "KC Concepcion", "pos": "WR", "team": "Cleveland Browns", "rank": 6},
+    {"id": 7, "name": "Fernando Mendoza", "pos": "QB", "team": "Las Vegas Raiders", "rank": 7},
+    {"id": 8, "name": "Kenyon Sadiq", "pos": "TE", "team": "New York Jets", "rank": 8},
+    {"id": 9, "name": "Omar Cooper Jr.", "pos": "WR", "team": "New York Jets", "rank": 9},
+    {"id": 10, "name": "Denzel Boston", "pos": "WR", "team": "Cleveland Browns", "rank": 10},
 ]
 
 CALCULATOR_TEMPLATE = """
@@ -429,6 +369,7 @@ CALCULATOR_TEMPLATE = """
         <a href="/league-feed" class="nav-btn">⚡ League Feed</a>
         <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn">📈 Trends</a>
+        <a href="/draft-analyzer" class="nav-btn">🎯 Draft Analyzer</a>
     </div>
     
     <form method="POST" id="calcForm">
@@ -738,6 +679,7 @@ ANALYSIS_TEMPLATE = """
         <a href="/league-feed" class="nav-btn">⚡ League Feed</a>
         <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn">📈 Trends</a>
+        <a href="/draft-analyzer" class="nav-btn">🎯 Draft Analyzer</a>
     </div>
 
     <form method="POST" action="/analysis">
@@ -840,6 +782,7 @@ ROOKIE_DRAFT_TEMPLATE = """
         <a href="/league-feed" class="nav-btn">⚡ League Feed</a>
         <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn">📈 Trends</a>
+        <a href="/draft-analyzer" class="nav-btn">🎯 Draft Analyzer</a>
     </div>
 
     <form method="POST" action="/rookie-draft">
@@ -1011,6 +954,7 @@ LEAGUE_FEED_TEMPLATE = """
         <a href="/league-feed" class="nav-btn active">⚡ League Feed</a>
         <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn">📈 Trends</a>
+        <a href="/draft-analyzer" class="nav-btn">🎯 Draft Analyzer</a>
     </div>
     <div style="background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; border: 1px solid {{ t['border'] }};">
         <form method="GET" action="/league-feed">
@@ -1056,6 +1000,7 @@ HOF_TEMPLATE = """
         <a href="/league-feed" class="nav-btn">⚡ League Feed</a>
         <a href="/hall-of-fame" class="nav-btn active">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn">📈 Trends</a>
+        <a href="/draft-analyzer" class="nav-btn">🎯 Draft Analyzer</a>
     </div>
     <div style="background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; border: 1px solid {{ t['border'] }};">
         <div style="background: {{ t['card_bg'] }}; padding: 12px; border-radius: 6px; margin-bottom: 10px; border: 1px solid {{ t['border'] }};">
@@ -1088,6 +1033,7 @@ TRENDS_TEMPLATE = """
         <a href="/league-feed" class="nav-btn">⚡ League Feed</a>
         <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
         <a href="/trends" class="nav-btn active">📈 Trends</a>
+        <a href="/draft-analyzer" class="nav-btn">🎯 Draft Analyzer</a>
     </div>
     <div style="background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; height: 350px; border: 1px solid {{ t['border'] }};">
         <canvas id="trendChart"></canvas>
@@ -1111,6 +1057,97 @@ new Chart(document.getElementById('trendChart').getContext('2d'), {
     options: { responsive: true, maintainAspectRatio: false }
 });
 </script>
+</body>
+</html>
+"""
+
+DRAFT_ANALYZER_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Draft Analyzer</title>
+    <style>
+        {{ shared_styles }}
+        .draft-summary-card { background: {{ t['panel'] }}; border: 1px solid {{ t['border'] }}; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .pick-row { background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; font-size: 0.9em; }
+        .badge-grade { padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em; }
+        .grade-s { background: #1b3320; color: #81c784; border: 1px solid #2e7d32; }
+        .grade-a { background: #00363a; color: #4dd0e1; border: 1px solid #00acc1; }
+        .grade-b { background: #3e2723; color: #ffb74d; border: 1px solid #ef6c00; }
+        .grade-c { background: #2a1b3d; color: #b388ff; border: 1px solid #7c4dff; }
+    </style>
+</head>
+<body>
+<div class="container" style="max-width: 800px;">
+    {{ theme_form | safe }}
+    <h2>🎯 Dynasty Draft Analyzer</h2>
+    <div class="nav-tabs">
+        <a href="/" class="nav-btn">⚖️ Trade Calculator</a>
+        <a href="/analysis" class="nav-btn">📊 Team Rankings</a>
+        <a href="/rookie-draft" class="nav-btn">📋 Rookie Mock</a>
+        <a href="/league-feed" class="nav-btn">⚡ League Feed</a>
+        <a href="/hall-of-fame" class="nav-btn">🏆 Hall of Fame</a>
+        <a href="/trends" class="nav-btn">📈 Trends</a>
+        <a href="/draft-analyzer" class="nav-btn active">🎯 Draft Analyzer</a>
+    </div>
+
+    <form method="POST" action="/draft-analyzer">
+        <div class="sync-box">
+            <small><b>⚡ Sync League for Draft Analysis:</b></small>
+            <div class="sync-inputs">
+                <input type="text" name="sleeper_input" placeholder="Sleeper Username or League ID" value="{{ sleeper_input }}">
+                <button type="submit" name="action" value="sync" style="width: auto; margin-top:0; padding: 8px 12px;">Fetch Leagues</button>
+            </div>
+
+            {% if user_leagues %}
+                <div style="margin-top: 10px;">
+                    <small><b>Select League:</b></small>
+                    <select name="sleeper_league_id" style="width: 100%; margin-top: 4px;">
+                        {% for lg in user_leagues %}
+                            <option value="{{ lg.id }}" {% if selected_league_id == lg.id %}selected{% endif %}>{{ lg.name }} ({{ lg.season }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" name="action" value="analyze_draft" style="background: {{ t['primary'] }}; padding: 8px; margin-top: 6px; font-size: 0.9em;">Analyze Draft Board</button>
+                </div>
+            {% endif %}
+
+            {% if sleeper_msg %}
+                <div class="sync-msg">{{ sleeper_msg }}</div>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if draft_results %}
+        <div style="margin-top: 20px;">
+            <h3 style="color: {{ t['primary'] }};">🏆 Team Draft Value & Grades</h3>
+            {% for team_name, data in draft_results.team_grades.items() %}
+                <div class="draft-summary-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <b style="font-size: 1.1em; color: {{ t['primary'] }};">{{ team_name }}</b>
+                        <div>
+                            <span class="badge-grade {% if data.grade == 'A+' or data.grade == 'A' %}grade-s{% elif data.grade == 'B' %}grade-a{% else %}grade-b{% endif %}">Grade: {{ data.grade }}</span>
+                            <span style="margin-left: 8px; font-weight: bold;">{{ "{:,}".format(data.total_value) }} pts</span>
+                        </div>
+                    </div>
+                    <small style="color: {{ t['subtext'] }};">Picks made: {{ data.picks_count }}</small>
+                    <div style="margin-top: 8px;">
+                        {% for pick in data.picks %}
+                            <div class="pick-row">
+                                <span>Rd {{ pick.round }}, Pick {{ pick.pick_no }} (Overall {{ pick.overall }})<br><strong>{{ pick.player_name }}</strong></span>
+                                <span style="text-align: right;">{{ "{:,}".format(pick.value) }} pts<br><small style="color: {{ t['primary'] }};">Expected: ~{{ "{:,}".format(pick.expected_value) }} pts</small></span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 30px; color: {{ t['subtext'] }};">
+            <p>Select your league above and click "Analyze Draft Board" to evaluate rookie drafts, pick values, and manager draft grades.</p>
+        </div>
+    {% endif %}
+</div>
 </body>
 </html>
 """
@@ -1796,7 +1833,6 @@ def home():
         selected_assets[losing_team].append(best_asset)
         counter_msg = f"💡 Counter-Offer Added: Automatically added {best_asset} ({available_pool[best_asset]:,} pts)."
 
-        # Re-build items after counter offer addition
         team_a_items = []
         for item in selected_assets["team_a"]:
           val = flat_players.get(item, 800)
@@ -2129,10 +2165,15 @@ def league_feed():
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
 
-  league_id = request.args.get(
-      "league_id", session.get("selected_league_id", "")
-  )
+  league_id = request.args.get("league_id", session.get("selected_league_id", ""))
   transactions = []
+  if league_id:
+    tx_data = fetch_sleeper_api(
+        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
+    )
+    if isinstance(tx_data, list):
+      transactions = tx_data[:15]
+
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
@@ -2140,6 +2181,188 @@ def league_feed():
       shared_styles=shared_styles,
       league_id=league_id,
       transactions=transactions,
+  )
+
+
+@app.route("/hall-of-fame", methods=["GET"])
+def hall_of_fame():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  return render_template_string(
+      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
+  )
+
+
+@app.route("/trends", methods=["GET"])
+def trends():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  mock_trends = {
+      "Ja'Marr Chase (WR)": [
+          {"month": "June", "value": 9100},
+          {"month": "July", "value": 9300},
+          {"month": "August", "value": 9500},
+      ],
+      "Bijan Robinson (RB)": [
+          {"month": "June", "value": 8500},
+          {"month": "July", "value": 8700},
+          {"month": "August", "value": 8900},
+      ],
+      "Caleb Williams (QB)": [
+          {"month": "June", "value": 7200},
+          {"month": "July", "value": 7400},
+          {"month": "August", "value": 7500},
+      ],
+      "Brock Bowers (TE)": [
+          {"month": "June", "value": 7400},
+          {"month": "July", "value": 7600},
+          {"month": "August", "value": 7800},
+      ],
+  }
+
+  return render_template_string(
+      TRENDS_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      trends=json.dumps(mock_trends),
+  )
+
+
+@app.route("/draft-analyzer", methods=["GET", "POST"])
+def draft_analyzer():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  sleeper_input = session.get("sleeper_input", "")
+  selected_league_id = session.get("selected_league_id", "")
+  user_leagues = session.get("user_leagues", [])
+  sleeper_msg = ""
+  draft_results = None
+
+  if request.method == "POST":
+    action = request.form.get("action")
+    sleeper_input = request.form.get("sleeper_input", "").strip()
+    form_league_id = request.form.get("sleeper_league_id", "").strip()
+    if form_league_id:
+      selected_league_id = form_league_id
+
+    if action in ["sync", "select_league", "analyze_draft"] or (
+        selected_league_id
+        and selected_league_id != session.get("selected_league_id")
+    ):
+      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
+
+    if action == "analyze_draft" and selected_league_id:
+      league_data = fetch_sleeper_api(
+          f"https://api.sleeper.app/v1/league/{selected_league_id}"
+      )
+      draft_id = league_data.get("draft_id") if league_data else None
+
+      if draft_id:
+        picks_data = fetch_sleeper_api(
+            f"https://api.sleeper.app/v1/draft/{draft_id}/picks"
+        )
+        users_data = fetch_sleeper_api(
+            f"https://api.sleeper.app/v1/league/{selected_league_id}/users"
+        )
+        rosters_data = fetch_sleeper_api(
+            f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters"
+        )
+        player_map = get_sleeper_player_map()
+        is_sf = session.get("league_format", "1QB") == "Superflex"
+        active_players = fetch_live_fantasycalc_values(is_superflex=is_sf)
+
+        flat_players = {}
+        for pos, p_dict in active_players.items():
+          for name, val in p_dict.items():
+            flat_players[name] = val
+
+        user_map = (
+            {u["user_id"]: u.get("display_name", "Unknown") for u in users_data}
+            if users_data
+            else {}
+        )
+        roster_id_to_owner = {}
+        if rosters_data:
+          for r in rosters_data:
+            r_id = r.get("roster_id")
+            oid = r.get("owner_id")
+            if r_id and oid in user_map:
+              roster_id_to_owner[r_id] = user_map[oid]
+
+        team_grades = {}
+        if isinstance(picks_data, list):
+          for pick in picks_data:
+            roster_id = pick.get("roster_id")
+            owner_name = roster_id_to_owner.get(roster_id, f"Team {roster_id}")
+            pid = pick.get("player_id")
+            player_name = player_map.get(str(pid), f"Player {pid}")
+            val = flat_players.get(player_name, 1500)
+            round_num = pick.get("round", 1)
+            pick_no = pick.get("pick_no", 1)
+            overall = pick.get("overall", pick_no)
+
+            expected_val = max(5000 - (overall * 200), 800)
+
+            if owner_name not in team_grades:
+              team_grades[owner_name] = {
+                  "total_value": 0,
+                  "picks_count": 0,
+                  "picks": [],
+              }
+
+            team_grades[owner_name]["total_value"] += val
+            team_grades[owner_name]["picks_count"] += 1
+            team_grades[owner_name]["picks"].append({
+                "round": round_num,
+                "pick_no": pick_no,
+                "overall": overall,
+                "player_name": player_name,
+                "value": val,
+                "expected_value": expected_val,
+            })
+
+          for owner_name, data in team_grades.items():
+            tot_val = data["total_value"]
+            if tot_val > 25000:
+              data["grade"] = "A+"
+            elif tot_val > 18000:
+              data["grade"] = "A"
+            elif tot_val > 12000:
+              data["grade"] = "B"
+            else:
+              data["grade"] = "C"
+
+          sorted_teams = dict(
+              sorted(
+                  team_grades.items(),
+                  key=lambda x: x[1]["total_value"],
+                  reverse=True,
+              )
+          )
+          draft_results = {"team_grades": sorted_teams}
+      else:
+        sleeper_msg = "⚠️ No active draft found for this league on Sleeper."
+
+  return render_template_string(
+      DRAFT_ANALYZER_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      sleeper_input=sleeper_input,
+      selected_league_id=selected_league_id,
+      user_leagues=user_leagues,
+      sleeper_msg=sleeper_msg,
+      draft_results=draft_results,
   )
 
 
