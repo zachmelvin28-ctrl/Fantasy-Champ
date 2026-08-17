@@ -2130,7 +2130,12 @@ def hall_of_fame():
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-  return render_template_string(HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles)
+  return render_template_string(
+      HOF_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+  )
 
 
 @app.route("/trends", methods=["GET"])
@@ -2139,20 +2144,21 @@ def trends():
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-  mock_trends = {
-      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
-      "Ja'Marr Chase (WR)": [{"value": 9100}, {"value": 9300}, {"value": 9500}],
-      "Bijan Robinson (RB)": [{"value": 8700}, {"value": 8800}, {"value": 8900}],
-      "Brock Bowers (TE)": [{"value": 7400}, {"value": 7600}, {"value": 7800}]
+
+  sample_trends = {
+      "Josh Allen (QB)": [{"date": "June", "value": 8200}, {"date": "July", "value": 8300}, {"date": "August", "value": 8400}],
+      "Bijan Robinson (RB)": [{"date": "June", "value": 8600}, {"date": "July", "value": 8750}, {"date": "August", "value": 8900}],
+      "Ja'Marr Chase (WR)": [{"date": "June", "value": 9200}, {"date": "July", "value": 9300}, {"date": "August", "value": 9500}],
+      "Brock Bowers (TE)": [{"date": "June", "value": 7400}, {"date": "July", "value": 7600}, {"date": "August", "value": 7800}],
   }
   return render_template_string(
       TRENDS_TEMPLATE,
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
-      trends=json.dumps(mock_trends)
+      trends=json.dumps(sample_trends),
   )
 
 
 if __name__ == "__main__":
-  app.run(debug=True, port=5000)
+  app.run(debug=True)
