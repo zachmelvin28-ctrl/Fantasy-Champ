@@ -2067,75 +2067,37 @@ def home():
         if b_cname and b_custom_num > 0:
           team_b_items.append({"name": b_cname, "val": b_custom_num})
 
-        raw_a = sum(i["val"] for i in team_a_items)
-        raw_b = sum(i["val"] for i in team_b_items)
-        count_a = len(team_a_items)
-        count_b = len(team_b_items)
+    team_a_total = sum(i["val"] for i in team_a_items)
+    team_b_total = sum(i["val"] for i in team_b_items)
+    diff_val = abs(team_a_total - team_b_total)
 
-    stud_msg = ""
-    team_a_total = raw_a
-    team_b_total = raw_b
+    itemized_summary_s = f"Trade Breakdown:\n{selected_owner_a or 'Team A'} Gives:\n"
+    for item in team_a_items:
+      itemized_summary_s += f"- {item['name']} ({item['val']:,} pts)\n"
+    itemized_summary_s += f"Total: {team_a_total:,} pts\n\n{selected_owner_b or 'Team B'} Gives:\n"
+    for item in team_b_items:
+      itemized_summary_s += f"- {item['name']} ({item['val']:,} pts)\n"
+    itemized_summary_s += f"Total: {team_b_total:,} pts\n"
 
-    if count_a > 0 and count_b > 0 and count_a != count_b:
-      if count_a < count_b:
-        team_a_total = int(raw_a * 1.10)
-        stud_msg = f"⚡ Stud Premium (+10%) applied to Team A ({count_a} vs {count_b} pieces)."
-      else:
-        team_b_total = int(raw_b * 1.10)
-        stud_msg = f"⚡ Stud Premium (+10%) applied to Team B ({count_b} vs {count_a} pieces)."
-
-    diff = abs(team_a_total - team_b_total)
-    total_val = max(team_a_total + team_b_total, 1)
-    diff_pct = (diff / total_val) * 100
+    message = (
+        "Fair Trade ✅"
+        if diff_val < 500
+        else (
+            "Team A Wins Trade 📈"
+            if team_a_total > team_b_total
+            else "Team B Wins Trade 📉"
+        )
+    )
 
     balancer_msg = ""
-    if diff > 0 and (team_a_total > 0 or team_b_total > 0):
-      losing_team = "team_b" if team_a_total > team_b_total else "team_a"
-      losing_owner = (
-          selected_owner_b if losing_team == "team_b" else selected_owner_a
+    if diff_val >= 500:
+      favored = (
+          selected_owner_a if team_a_total > team_b_total else selected_owner_b
       )
-      balancer_pool = (
-          owner_rosters.get(losing_owner, flat_players)
-          if losing_owner
-          else flat_players
+      disfavored = (
+          selected_owner_b if favored == selected_owner_a else selected_owner_a
       )
-      balancer_pool = {
-          k: v for k, v in balancer_pool.items() if k not in all_selected
-      }
-      if balancer_pool:
-        closest_asset = min(
-            balancer_pool.keys(), key=lambda k: abs(balancer_pool[k] - diff)
-        )
-        balancer_msg = f"💡 Trade Balancer: Add ~{diff:,} pts (Closest match: {closest_asset} @ {balancer_pool[closest_asset]:,} pts)."
-
-    if team_a_total == 0 and team_b_total == 0:
-      message = "Select assets on both sides to analyze trade."
-    elif diff_pct <= 3.0:
-      message = "⚖️ Fair Trade! Values are tightly balanced."
-    elif team_a_total > team_b_total:
-      favored = selected_owner_a or "Team A"
-      message = f"📈 Favors {favored} by {diff:,} pts ({diff_pct:.1f}%)"
-    else:
-      favored = selected_owner_b or "Team B"
-      message = f"📈 Favors {favored} by {diff:,} pts ({diff_pct:.1f}%)"
-
-    a_str = (
-        ", ".join([i["name"] for i in team_a_items])
-        if team_a_items
-        else "Nothing"
-    )
-    b_str = (
-        ", ".join([i["name"] for i in team_b_items])
-        if team_b_items
-        else "Nothing"
-    )
-    itemized_summary_text = (
-        f"📊 TRADE EVALUATION ({league_format})\n"
-        f"----------------------------------------\n"
-        f"{selected_owner_a or 'Team A'} Gives: {a_str} ({team_a_total:,} pts)\n"
-        f"{selected_owner_b or 'Team B'} Gives: {b_str} ({team_b_total:,} pts)\n"
-        f"Verdict: {message}\n"
-    )
+      balancer_msg = f"⚖️ Value Imbalance: {diff_val:,} pt difference. Consider adding a pick or player to balance the scales for {disfavored}."
 
     result = {
         "team_a_items": team_a_items,
@@ -2143,11 +2105,10 @@ def home():
         "team_a_total": team_a_total,
         "team_b_total": team_b_total,
         "message": message,
-        "stud_msg": stud_msg,
-        "counter_msg": counter_msg,
         "balancer_msg": balancer_msg,
+        "counter_msg": counter_msg,
         "smart_suggestions": smart_suggestions,
-        "itemized_summary_text": itemized_summary_text,
+        "itemized_summary_text": itemized_summary_s,
     }
 
   return render_template_string(
@@ -2156,23 +2117,301 @@ def home():
       theme_form=theme_form,
       shared_styles=shared_styles,
       player_groups=active_players,
-      result=result,
-      league_format=league_format,
-      sleeper_input=sleeper_input,
-      selected_league_id=selected_league_id,
+      selected_assets=selected_assets,
+      custom_assets=custom_assets,
       user_leagues=user_leagues,
       league_owners=league_owners,
       owner_rosters=owner_rosters,
+      sleeper_input=sleeper_input,
+      selected_league_id=selected_league_id,
       selected_owner_a=selected_owner_a,
       selected_owner_b=selected_owner_b,
-      selected_assets=selected_assets,
-      custom_assets=custom_assets,
+      league_format=league_format,
       pick_modifier=pick_modifier,
       smart_strategy=smart_strategy,
       smart_strategy_label=smart_strategy.replace("_", " ").title(),
       target_player_filter=target_player_filter,
-      sleeper_msg=sleeper_msg,
       smart_page=smart_page,
+      sleeper_msg=sleeper_msg,
+      result=result,
+  )
+
+
+@app.route("/analysis", methods=["GET", "POST"])
+def analysis():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  sleeper_input = session.get("sleeper_input", "")
+  selected_league_id = session.get("selected_league_id", "")
+  user_leagues = session.get("user_leagues", [])
+  owner_rosters = session.get("owner_rosters", {})
+  sleeper_msg = ""
+  power_rankings = []
+
+  if request.method == "POST":
+    action = request.form.get("action")
+    sleeper_input = request.form.get("sleeper_input", "").strip()
+    form_league_id = request.form.get("sleeper_league_id", "").strip()
+    if form_league_id:
+      selected_league_id = form_league_id
+
+    if action in ["sync", "select_league"] or (
+        selected_league_id and selected_league_id != session.get("selected_league_id")
+    ):
+      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
+      owner_rosters = session.get("owner_rosters", {})
+
+  if owner_rosters:
+    is_sf = session.get("league_format", "1QB") == "Superflex"
+    active_players, _ = get_fantasycalc_player_data(is_superflex=is_sf)
+    flat_lookup = {}
+    for pos, p_dict in active_players.items():
+      for name, val in p_dict.items():
+        flat_lookup[name] = val
+
+    for oname, roster_dict in owner_rosters.items():
+      qb_val = sum(v for k, v in roster_dict.items() if "(QB)" in k)
+      rb_val = sum(v for k, v in roster_dict.items() if "(RB)" in k)
+      wr_val = sum(v for k, v in roster_dict.items() if "(WR)" in k)
+      te_val = sum(v for k, v in roster_dict.items() if "(TE)" in k)
+      pick_val = sum(v for k, v in roster_dict.items() if "Pick" in k or "Round" in k)
+      total_val = sum(roster_dict.values())
+
+      archetype = (
+          "Contender"
+          if total_val > 45000
+          else ("Playoff Threat" if total_val > 35000 else "Rebuilder")
+      )
+
+      power_rankings.append({
+          "name": oname,
+          "total_val": total_val,
+          "qb_val": qb_val,
+          "rb_val": rb_val,
+          "wr_val": wr_val,
+          "te_val": te_val,
+          "pick_val": pick_val,
+          "archetype": archetype,
+      })
+
+    power_rankings.sort(key=lambda x: x["total_val"], reverse=True)
+
+  return render_template_string(
+      ANALYSIS_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      user_leagues=user_leagues,
+      selected_league_id=selected_league_id,
+      sleeper_input=sleeper_input,
+      sleeper_msg=sleeper_msg,
+      power_rankings=power_rankings,
+  )
+
+
+@app.route("/league-feed")
+def league_feed():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+  league_id = request.args.get("league_id", session.get("selected_league_id", ""))
+  transactions = []
+
+  if league_id:
+    tx_data = fetch_sleeper_api(
+        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
+    )
+    if isinstance(tx_data, list):
+      for tx in tx_data:
+        transactions.append({
+            "type": tx.get("type", "transaction").upper(),
+            "week": tx.get("week", 1),
+        })
+
+  return render_template_string(
+      LEAGUE_FEED_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      league_id=league_id,
+      transactions=transactions,
+  )
+
+
+@app.route("/hall-of-fame")
+def hall_of_fame():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+  return render_template_string(
+      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
+  )
+
+
+@app.route("/trends")
+def trends():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+  sample_trends = {
+      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
+      "Bijan Robinson (RB)": [{"value": 8600}, {"value": 8700}, {"value": 8900}],
+      "Ja'Marr Chase (WR)": [{"value": 9200}, {"value": 9300}, {"value": 9500}],
+      "Brock Bowers (TE)": [{"value": 7400}, {"value": 7600}, {"value": 7800}],
+  }
+  return render_template_string(
+      TRENDS_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      trends=json.dumps(sample_trends),
+  )
+
+
+@app.route("/draft-analyzer", methods=["GET", "POST"])
+def draft_analyzer():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  sleeper_input = session.get("sleeper_input", "")
+  selected_league_id = session.get("selected_league_id", "")
+  user_leagues = session.get("user_leagues", [])
+  sleeper_msg = ""
+  draft_results = None
+
+  if request.method == "POST":
+    action = request.form.get("action")
+    sleeper_input = request.form.get("sleeper_input", "").strip()
+    form_league_id = request.form.get("sleeper_league_id", "").strip()
+    if form_league_id:
+      selected_league_id = form_league_id
+
+    if action in ["sync", "select_league", "analyze_draft"] or (
+        selected_league_id and selected_league_id != session.get("selected_league_id")
+    ):
+      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
+
+    if selected_league_id:
+      drafts = fetch_sleeper_api(
+          f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts"
+      )
+      if drafts and isinstance(drafts, list):
+        draft_id = drafts[0].get("draft_id")
+        picks_data = (
+            fetch_sleeper_api(
+                f"https://api.sleeper.app/v1/draft/{draft_id}/picks"
+            )
+            or []
+        )
+        users_data = (
+            fetch_sleeper_api(
+                f"https://api.sleeper.app/v1/league/{selected_league_id}/users"
+            )
+            or []
+        )
+        rosters_data = (
+            fetch_sleeper_api(
+                f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters"
+            )
+            or []
+        )
+
+        user_id_to_name = {
+            u["user_id"]: u.get("display_name", "Unknown")
+            for u in users_data
+            if "user_id" in u
+        }
+        roster_id_to_owner = {}
+        for r in rosters_data:
+          r_id = r.get("roster_id")
+          oid = r.get("owner_id")
+          if r_id and oid in user_id_to_name:
+            roster_id_to_owner[r_id] = user_id_to_name[oid]
+
+        is_sf = session.get("league_format", "1QB") == "Superflex"
+        active_players, _ = get_fantasycalc_player_data(is_superflex=is_sf)
+        flat_lookup = {}
+        for pos, p_dict in active_players.items():
+          for name, val in p_dict.items():
+            flat_lookup[name] = val
+
+        team_grades = {}
+        player_map = get_sleeper_player_map()
+
+        for p in picks_data:
+          roster_id = p.get("roster_id")
+          owner_name = roster_id_to_owner.get(roster_id, f"Team {roster_id}")
+          pick_no = p.get("pick_no")
+          round_no = p.get("round")
+          overall = pick_no
+
+          metadata = p.get("metadata", {})
+          player_name = (
+              metadata.get("first_name", "")
+              + " "
+              + metadata.get("last_name", "")
+          )
+          player_id = p.get("player_id")
+          if not player_name.strip():
+            player_name = player_map.get(
+                str(player_id), f"Prospect {player_id}"
+            )
+
+          val = flat_lookup.get(player_name, 3500)
+          expected_val = max(1000, 6000 - (overall * 80))
+
+          if owner_name not in team_grades:
+            team_grades[owner_name] = {
+                "picks": [],
+                "total_value": 0,
+                "picks_count": 0,
+            }
+
+          team_grades[owner_name]["picks"].append({
+              "round": round_no,
+              "pick_no": p.get("draft_slot"),
+              "overall": overall,
+              "player_name": player_name,
+              "value": val,
+              "expected_value": expected_val,
+          })
+          team_grades[owner_name]["total_value"] += val
+          team_grades[owner_name]["picks_count"] += 1
+
+        for oname, data in team_grades.items():
+          tot = data["total_value"]
+          if tot > 25000:
+            grade = "S"
+          elif tot > 18000:
+            grade = "A"
+          elif tot > 12000:
+            grade = "B"
+          elif tot > 8000:
+            grade = "C"
+          else:
+            grade = "D"
+          data["grade"] = grade
+
+        draft_results = {"team_grades": team_grades}
+
+  return render_template_string(
+      DRAFT_ANALYZER_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      user_leagues=user_leagues,
+      selected_league_id=selected_league_id,
+      sleeper_input=sleeper_input,
+      sleeper_msg=sleeper_msg,
+      draft_results=draft_results,
   )
 
 
