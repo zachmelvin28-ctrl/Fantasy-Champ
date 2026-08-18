@@ -759,7 +759,7 @@ ROOKIE_DRAFT_TEMPLATE = """
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Live Rookie Draft Board</title>
+    <title>Live Draft Board</title>
     <style>
         {{ shared_styles }}
         .draft-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }
@@ -777,12 +777,13 @@ ROOKIE_DRAFT_TEMPLATE = """
         button.draft-btn:hover { background: {{ t['primary_hover'] }}; }
         .sync-badge { background: {{ t['primary'] }}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; font-weight: bold; }
         .live-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.9em; }
+        .draft-mode-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; background: {{ t['card_bg'] }}; padding: 8px; border-radius: 6px; border: 1px solid {{ t['border'] }}; }
     </style>
 </head>
 <body>
 <div class="container" style="max-width: 850px;">
     {{ theme_form | safe }}
-    <h2>📋 Live Sleeper Rookie Draft Board</h2>
+    <h2>📋 Live Sleeper Draft Board</h2>
     <div class="nav-tabs">
         <a href="/" class="nav-btn">⚖️ Trade Calculator</a>
         <a href="/analysis" class="nav-btn">📊 Team Rankings</a>
@@ -821,6 +822,12 @@ ROOKIE_DRAFT_TEMPLATE = """
 
     <div id="syncStatus"></div>
 
+    <div class="draft-mode-bar">
+        <small><b>Draft Type:</b></small>
+        <label><input type="radio" name="draft_mode" value="rookie" checked onchange="switchDraftMode('rookie')"> Rookie Draft Only</label>
+        <label><input type="radio" name="draft_mode" value="regular" onchange="switchDraftMode('regular')"> Regular / Startup Draft (All Players)</label>
+    </div>
+
     <div class="live-controls">
         <span id="liveStatusText" style="color: {{ t['subtext'] }}; font-size: 0.85em;">🟢 Live Draft Polling: Active</span>
         <button onclick="loadLiveDraftData()" style="width: auto; margin-top: 0; padding: 4px 10px; font-size: 0.8em;">🔄 Force Refresh</button>
@@ -829,7 +836,7 @@ ROOKIE_DRAFT_TEMPLATE = """
     <div class="draft-container">
         <!-- Available Prospects Panel -->
         <div class="panel">
-            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.1em;">Available Prospects</h3>
+            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.1em;" id="poolTitle">Available Prospects</h3>
             <div class="filters">
                 <button class="filter-btn active" onclick="filterPos('ALL', event)">ALL</button>
                 <button class="filter-btn" onclick="filterPos('QB', event)">QB</button>
@@ -849,7 +856,9 @@ ROOKIE_DRAFT_TEMPLATE = """
 </div>
 
 <script>
-    let rookies = [];
+    let rookieList = [];
+    let regularList = [];
+    let currentDraftMode = 'rookie';
     let currentFilter = 'ALL';
     let totalPicks = 12;
     let draftState = {};
@@ -858,11 +867,13 @@ ROOKIE_DRAFT_TEMPLATE = """
 
     async function loadLiveDraftData() {
         try {
-            const [rookRes, draftRes] = await Promise.all([
+            const [rookRes, regRes, draftRes] = await Promise.all([
                 fetch('/api/rookies'),
+                fetch('/api/all-players'),
                 fetch('/api/league-draft-info')
             ]);
-            rookies = await rookRes.json();
+            rookieList = await rookRes.json();
+            regularList = await regRes.json();
             const draftData = await draftRes.json();
             
             if (draftData.success) {
@@ -893,6 +904,12 @@ ROOKIE_DRAFT_TEMPLATE = """
         }
     }
 
+    function switchDraftMode(mode) {
+        currentDraftMode = mode;
+        document.getElementById('poolTitle').innerText = mode === 'regular' ? 'Available Players (Startup/Regular)' : 'Available Prospects';
+        renderPlayers();
+    }
+
     function filterPos(pos, event) {
         currentFilter = pos;
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -904,19 +921,22 @@ ROOKIE_DRAFT_TEMPLATE = """
         const listEl = document.getElementById('playerList');
         listEl.innerHTML = '';
         
+        const activeList = currentDraftMode === 'regular' ? regularList : rookieList;
         const draftedIds = Object.values(draftState);
-        const filtered = rookies.filter(p => !draftedIds.includes(p.id) && !draftedIds.includes(String(p.id)) && (currentFilter === 'ALL' || p.pos === currentFilter));
+        
+        const filtered = activeList.filter(p => !draftedIds.includes(p.id) && !draftedIds.includes(String(p.id)) && !draftedIds.includes(p.name) && (currentFilter === 'ALL' || p.pos === currentFilter));
         
         if (filtered.length === 0) {
-            listEl.innerHTML = '<p style="color: {{ t[\'subtext\'] }}; text-align:center; font-size:0.9em;">No prospects available.</p>';
+            listEl.innerHTML = '<p style="color: {{ t[\'subtext\'] }}; text-align:center; font-size:0.9em;">No players available.</p>';
             return;
         }
 
         filtered.forEach(player => {
             const card = document.createElement('div');
             card.className = 'player-card';
-            card.innerHTML = `<span><strong>${player.rank}. ${player.name}</strong><br><small style="color:{{ t['subtext'] }};">${player.pos} - ${player.team}</small></span>
-                              <button class="draft-btn" onclick="draftPlayer(${player.id})">Draft</button>`;
+            const subtitle = currentDraftMode === 'regular' ? `${player.pos} - ${player.team || 'NFL'} (${player.val || 0} pts)` : `${player.pos} - ${player.team}`;
+            card.innerHTML = `<span><strong>${player.rank || ''} ${player.name}</strong><br><small style="color:{{ t['subtext'] }};">${subtitle}</small></span>
+                              <button class="draft-btn" onclick="draftPlayer('${player.name}')">Draft</button>`;
             listEl.appendChild(card);
         });
     }
@@ -930,7 +950,8 @@ ROOKIE_DRAFT_TEMPLATE = """
             const slot = document.createElement('div');
             slot.className = 'pick-slot';
             const draftedPlayerId = draftState[i];
-            const draftedPlayer = rookies.find(p => p.id == draftedPlayerId || p.name === draftedPlayerId);
+            const activeList = currentDraftMode === 'regular' ? regularList : rookieList;
+            const draftedPlayer = activeList.find(p => p.id == draftedPlayerId || p.name === draftedPlayerId);
 
             let ownerName = '';
             if (leagueDraftInfo && leagueDraftInfo.slot_to_owner) {
@@ -947,10 +968,10 @@ ROOKIE_DRAFT_TEMPLATE = """
         }
     }
 
-    async function draftPlayer(playerId) {
-        for (let i = 1; i <= 60; i++) {
+    async function draftPlayer(playerName) {
+        for (let i = 1; i <= 100; i++) {
             if (!draftState[i]) {
-                draftState[i] = playerId;
+                draftState[i] = playerName;
                 break;
             }
         }
@@ -1529,10 +1550,157 @@ def process_sleeper_sync(sleeper_input, selected_league_id):
     return f"Roster fetch error: {str(err)}"
 
 
+# ==========================================
+# LIVE DRAFT TOOLS API & ROUTE HANDLERS
+# ==========================================
+
+@app.route("/api/rookies")
+def api_rookies():
+  return jsonify(ROOKIE_PROSPECTS)
+
+
+@app.route("/api/all-players")
+def api_all_players():
+  is_sf = session.get("league_format", "1QB") == "Superflex"
+  active_players, _ = get_fantasycalc_player_data(is_superflex=is_sf)
+  all_players_list = []
+  rank_counter = 1
+  for pos_group, p_dict in active_players.items():
+    if pos_group == "Draft Picks":
+      continue
+    pos_code = pos_group[:-1] if pos_group.endswith('s') else pos_group
+    if "Quarter" in pos_group: pos_code = "QB"
+    elif "Running" in pos_group: pos_code = "RB"
+    elif "Wide" in pos_group: pos_code = "WR"
+    elif "Tight" in pos_group: pos_code = "TE"
+
+    sorted_p = sorted(p_dict.items(), key=lambda x: x[1], reverse=True)
+    for name, val in sorted_p:
+      all_players_list.append({
+          "id": rank_counter,
+          "name": name,
+          "pos": pos_code,
+          "team": "NFL",
+          "val": val,
+          "rank": rank_counter
+      })
+      rank_counter += 1
+  return jsonify(all_players_list)
+
+
+@app.route("/api/league-draft-info")
+def api_league_draft_info():
+  league_id = session.get("selected_league_id")
+  if not league_id:
+    return jsonify({"success": False, "message": "No league selected"})
+
+  drafts = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/drafts")
+  if not drafts or not isinstance(drafts, list):
+    target_league = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}")
+    teams = target_league.get("total_rosters", 12) if target_league else 12
+    return jsonify({"success": True, "teams": teams, "picks": []})
+
+  draft = drafts[0]
+  draft_id = draft.get("draft_id")
+  teams = draft.get("settings", {}).get("teams", 12)
+  rounds = draft.get("settings", {}).get("rounds", 4)
+  total_picks = teams * rounds
+
+  picks_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks") or []
+  users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/users") or []
+  rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/rosters") or []
+
+  user_id_to_name = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data if "user_id" in u}
+  roster_id_to_owner = {}
+  for r in rosters_data:
+    r_id = r.get("roster_id")
+    oid = r.get("owner_id")
+    if r_id and oid in user_id_to_name:
+      roster_id_to_owner[r_id] = user_id_to_name[oid]
+
+  slot_to_owner = {}
+  draft_order = draft.get("draft_order", {})
+  inv_draft_order = {str(slot): r_id for r_id, slot in draft_order.items()}
+
+  for pick_no in range(1, total_picks + 1):
+    round_num = ((pick_no - 1) // teams) + 1
+    pick_in_round = ((pick_no - 1) % teams) + 1
+
+    if round_num % 2 == 1:
+      pos_in_round = pick_in_round
+    else:
+      pos_in_round = teams - pick_in_round + 1
+
+    roster_id = inv_draft_order.get(str(pos_in_round))
+    if roster_id and roster_id in roster_id_to_owner:
+      slot_to_owner[pick_no] = roster_id_to_owner[roster_id]
+
+  formatted_picks = []
+  if isinstance(picks_data, list):
+    player_map = get_sleeper_player_map()
+    for p in picks_data:
+      pick_no = p.get("pick_no")
+      player_id = p.get("player_id")
+      metadata = p.get("metadata", {})
+      player_name = metadata.get("first_name", "") + " " + metadata.get("last_name", "")
+      if not player_name.strip():
+        player_name = player_map.get(str(player_id), player_id)
+
+      formatted_picks.append({
+          "pick_no": pick_no,
+          "player_id": player_name or player_id,
+      })
+
+  return jsonify({
+      "success": True,
+      "draft_id": draft_id,
+      "teams": teams,
+      "rounds": rounds,
+      "total_picks": total_picks,
+      "slot_to_owner": slot_to_owner,
+      "picks": formatted_picks,
+  })
+
+
+@app.route("/rookie-draft", methods=["GET", "POST"])
+def rookie_draft():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  sleeper_input = session.get("sleeper_input", "")
+  selected_league_id = session.get("selected_league_id", "")
+  user_leagues = session.get("user_leagues", [])
+  sleeper_msg = ""
+
+  if request.method == "POST":
+    action = request.form.get("action")
+    sleeper_input = request.form.get("sleeper_input", "").strip()
+    form_league_id = request.form.get("sleeper_league_id", "").strip()
+    if form_league_id:
+      selected_league_id = form_league_id
+
+    if action in ["sync", "select_league"] or (
+        selected_league_id and selected_league_id != session.get("selected_league_id")
+    ):
+      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
+
+  return render_template_string(
+      ROOKIE_DRAFT_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      sleeper_input=sleeper_input,
+      selected_league_id=selected_league_id,
+      user_leagues=user_leagues,
+      sleeper_msg=sleeper_msg,
+  )
+
+
 @app.errorhandler(Exception)
 def handle_exception(e):
   theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
   return (
       f"""
     <div style="font-family: sans-serif; padding: 20px; color: {t['text']}; background: {t['bg']};">
@@ -1941,67 +2109,46 @@ def home():
         balancer_msg = f"💡 Trade Balancer: Add ~{diff:,} pts (Closest match: {closest_asset} @ {balancer_pool[closest_asset]:,} pts)."
 
     if team_a_total == 0 and team_b_total == 0:
-      msg = "Select or enter assets on both sides."
-    elif diff_pct <= 5.0:
-      msg = f"⚖️ Fair Trade! Difference: {diff:,} pts ({diff_pct:.1f}%)."
+      message = "Select assets on both sides to analyze trade."
+    elif diff_pct <= 3.0:
+      message = "⚖️ Fair Trade! Values are tightly balanced."
     elif team_a_total > team_b_total:
-      msg = f"🏆 Team A wins by {diff:,} pts ({diff_pct:.1f}% margin)."
+      favored = selected_owner_a or "Team A"
+      message = f"📈 Favors {favored} by {diff:,} pts ({diff_pct:.1f}%)"
     else:
-      msg = f"🏆 Team B wins by {diff:,} pts ({diff_pct:.1f}% margin)."
+      favored = selected_owner_b or "Team B"
+      message = f"📈 Favors {favored} by {diff:,} pts ({diff_pct:.1f}%)"
 
-    owner_a_label = selected_owner_a if selected_owner_a else "Team A"
-    owner_b_label = selected_owner_b if selected_owner_b else "Team B"
-
-    summary_lines = [
-        "🏈 DYNASTY TRADE SUMMARY",
-        f"--- {owner_a_label} Gives ---",
-    ]
-    for item in team_a_items:
-      summary_lines.append(f"• {item['name']} ({item['val']:,} pts)")
-    summary_lines.append(f"Total: {team_a_total:,} pts\n")
-
-    summary_lines.append(f"--- {owner_b_label} Gives ---")
-    for item in team_b_items:
-      summary_lines.append(f"• {item['name']} ({item['val']:,} pts)")
-    summary_lines.append(f"Total: {team_b_total:,} pts\n")
-
-    if stud_msg:
-      summary_lines.append(stud_msg)
-    if counter_msg:
-      summary_lines.append(counter_msg)
-    summary_lines.append(f"Result: {msg}")
-    if balancer_msg:
-      summary_lines.append(balancer_msg)
-
-    itemized_summary_text = "\n".join(summary_lines)
+    a_str = (
+        ", ".join([i["name"] for i in team_a_items])
+        if team_a_items
+        else "Nothing"
+    )
+    b_str = (
+        ", ".join([i["name"] for i in team_b_items])
+        if team_b_items
+        else "Nothing"
+    )
+    itemized_summary_text = (
+        f"📊 TRADE EVALUATION ({league_format})\n"
+        f"----------------------------------------\n"
+        f"{selected_owner_a or 'Team A'} Gives: {a_str} ({team_a_total:,} pts)\n"
+        f"{selected_owner_b or 'Team B'} Gives: {b_str} ({team_b_total:,} pts)\n"
+        f"Verdict: {message}\n"
+    )
 
     result = {
         "team_a_items": team_a_items,
         "team_b_items": team_b_items,
         "team_a_total": team_a_total,
         "team_b_total": team_b_total,
-        "message": msg,
+        "message": message,
         "stud_msg": stud_msg,
-        "balancer_msg": balancer_msg,
         "counter_msg": counter_msg,
+        "balancer_msg": balancer_msg,
         "smart_suggestions": smart_suggestions,
         "itemized_summary_text": itemized_summary_text,
     }
-
-  strategy_labels = {
-      "balanced": "Balanced Value Match",
-      "rb_focus": "Target Star RBs",
-      "improve_rbs": "Improve Running Backs",
-      "rb_depth": "Add RB Depth",
-      "wr_focus": "Improve WR Depth",
-      "improve_wrs": "Improve Wide Receivers",
-      "tier_up": "Tier Up / Target Studs",
-      "win_now": "Win-Now / Veteran Push",
-      "pick_hoard": "Draft Pick Accumulation",
-      "qb_focus": "Elite QB Hunter",
-      "te_focus": "Tight End Upgrade",
-      "youth_rebuild": "Youth & Upside / Rebuild",
-  }
 
   return render_template_string(
       CALCULATOR_TEMPLATE,
@@ -2011,349 +2158,21 @@ def home():
       player_groups=active_players,
       result=result,
       league_format=league_format,
-      selected_assets=selected_assets,
-      custom_assets=custom_assets,
       sleeper_input=sleeper_input,
-      sleeper_msg=sleeper_msg,
+      selected_league_id=selected_league_id,
       user_leagues=user_leagues,
       league_owners=league_owners,
       owner_rosters=owner_rosters,
-      selected_league_id=selected_league_id,
       selected_owner_a=selected_owner_a,
       selected_owner_b=selected_owner_b,
+      selected_assets=selected_assets,
+      custom_assets=custom_assets,
       pick_modifier=pick_modifier,
       smart_strategy=smart_strategy,
-      smart_strategy_label=strategy_labels.get(
-          smart_strategy, "Balanced Value Match"
-      ),
+      smart_strategy_label=smart_strategy.replace("_", " ").title(),
       target_player_filter=target_player_filter,
+      sleeper_msg=sleeper_msg,
       smart_page=smart_page,
-  )
-
-
-@app.route("/analysis", methods=["GET", "POST"])
-def analysis():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-
-  sleeper_input = session.get("sleeper_input", "")
-  selected_league_id = session.get("selected_league_id", "")
-  user_leagues = session.get("user_leagues", [])
-  owner_rosters = session.get("owner_rosters", {})
-  sleeper_msg = ""
-  power_rankings = []
-
-  if request.method == "POST":
-    action = request.form.get("action")
-    sleeper_input = request.form.get("sleeper_input", "").strip()
-    form_league_id = request.form.get("sleeper_league_id", "").strip()
-    if form_league_id:
-      selected_league_id = form_league_id
-
-    if action in ["sync", "select_league"] or (
-        selected_league_id
-        and selected_league_id != session.get("selected_league_id")
-    ):
-      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
-      owner_rosters = session.get("owner_rosters", {})
-
-  if owner_rosters:
-    for name, roster in owner_rosters.items():
-      qb_val = sum(v for k, v in roster.items() if "(QB)" in k)
-      rb_val = sum(v for k, v in roster.items() if "(RB)" in k)
-      wr_val = sum(v for k, v in roster.items() if "(WR)" in k)
-      te_val = sum(v for k, v in roster.items() if "(TE)" in k)
-      pick_val = sum(
-          v for k, v in roster.items() if "Pick" in k or "Round" in k
-      )
-      total_val = sum(roster.values())
-
-      power_rankings.append({
-          "name": name,
-          "total_val": total_val,
-          "qb_val": qb_val,
-          "rb_val": rb_val,
-          "wr_val": wr_val,
-          "te_val": te_val,
-          "pick_val": pick_val,
-      })
-
-    power_rankings.sort(key=lambda x: x["total_val"], reverse=True)
-
-    total_teams = len(power_rankings)
-    for idx, team in enumerate(power_rankings):
-      pick_ratio = team["pick_val"] / max(team["total_val"], 1)
-
-      if idx < max(3, int(total_teams * 0.33)) and pick_ratio < 0.45:
-        archetype = "Contender"
-      elif pick_ratio > 0.35 or idx >= int(total_teams * 0.65):
-        archetype = "Rebuilder"
-      else:
-        archetype = "Playoff Threat"
-
-      team["archetype"] = archetype
-
-  return render_template_string(
-      ANALYSIS_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      sleeper_input=sleeper_input,
-      user_leagues=user_leagues,
-      selected_league_id=selected_league_id,
-      sleeper_msg=sleeper_msg,
-      power_rankings=power_rankings,
-  )
-
-
-@app.route("/rookie-draft", methods=["GET", "POST"])
-def rookie_draft():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-
-  sleeper_input = session.get("sleeper_input", "")
-  selected_league_id = session.get("selected_league_id", "")
-  user_leagues = session.get("user_leagues", [])
-  sleeper_msg = ""
-
-  if request.method == "POST":
-    action = request.form.get("action")
-    sleeper_input = request.form.get("sleeper_input", "").strip()
-    form_league_id = request.form.get("sleeper_league_id", "").strip()
-    if form_league_id:
-      selected_league_id = form_league_id
-
-    if action in ["sync", "select_league"] or (
-        selected_league_id
-        and selected_league_id != session.get("selected_league_id")
-    ):
-      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
-
-  return render_template_string(
-      ROOKIE_DRAFT_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      sleeper_input=sleeper_input,
-      user_leagues=user_leagues,
-      selected_league_id=selected_league_id,
-      sleeper_msg=sleeper_msg,
-  )
-
-
-@app.route("/api/rookies", methods=["GET"])
-def api_rookies():
-  return jsonify(ROOKIE_PROSPECTS)
-
-
-@app.route("/api/league-draft-info", methods=["GET"])
-def api_league_draft_info():
-  league_id = session.get("selected_league_id")
-  if not league_id:
-    return jsonify({"success": False, "message": "No league selected"})
-
-  try:
-    drafts = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/drafts")
-    users = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/users")
-    rosters = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/rosters")
-
-    user_id_map = {u["user_id"]: u.get("display_name", "Unknown") for u in users if "user_id" in u}
-    roster_user_map = {r["roster_id"]: user_id_map.get(r.get("owner_id"), f"Team {r.get('roster_id')}") for r in rosters}
-
-    teams_count = len(rosters) if rosters else 12
-
-    draft_id = None
-    slot_to_owner = {}
-    picks_made = []
-
-    if isinstance(drafts, list) and len(drafts) > 0:
-      active_draft = drafts[0]
-      draft_id = active_draft.get("draft_id")
-      draft_order = active_draft.get("draft_order", {})
-      
-      # Map draft slot to owner name
-      for uid, slot in draft_order.items():
-        uname = user_id_map.get(uid, f"Slot {slot}")
-        # Find roster id for user
-        r_id = next((r["roster_id"] for r in rosters if r.get("owner_id") == uid), None)
-        if r_id and r_id in roster_user_map:
-          uname = roster_user_map[r_id]
-        slot_to_owner[slot] = uname
-
-      if draft_id:
-        draft_picks = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks")
-        player_map = get_sleeper_player_map()
-        if isinstance(draft_picks, list):
-          for p in draft_picks:
-            pick_no = p.get("pick_no")
-            pid = str(p.get("player_id"))
-            p_name = player_map.get(pid, p.get("metadata", {}).get("first_name", "Drafted Player"))
-            picks_made.append({
-                "pick_no": pick_no,
-                "player_id": pid,
-                "player_name": p_name,
-                "round": p.get("round"),
-                "picked_by": p.get("picked_by")
-            })
-
-    return jsonify({
-        "success": True,
-        "draft_id": draft_id,
-        "teams": teams_count,
-        "total_picks": teams_count * 4,
-        "slot_to_owner": slot_to_owner,
-        "picks": picks_made
-    })
-  except Exception as e:
-    return jsonify({"success": False, "error": str(e)})
-
-
-@app.route("/league-feed", methods=["GET"])
-def league_feed():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-  league_id = request.args.get("league_id", session.get("selected_league_id", ""))
-  transactions = []
-  if league_id:
-    tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
-    if isinstance(tx_data, list):
-      transactions = tx_data
-
-  return render_template_string(
-      LEAGUE_FEED_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      league_id=league_id,
-      transactions=transactions,
-  )
-
-
-@app.route("/hall-of-fame", methods=["GET"])
-def hall_of_fame():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-  return render_template_string(
-      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
-  )
-
-
-@app.route("/trends", methods=["GET"])
-def trends():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-  sample_trends = {
-      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
-      "Bijan Robinson (RB)": [{"value": 8500}, {"value": 8700}, {"value": 8900}],
-      "Ja'Marr Chase (WR)": [{"value": 9000}, {"value": 9200}, {"value": 9500}],
-      "Brock Bowers (TE)": [{"value": 7000}, {"value": 7400}, {"value": 7800}],
-  }
-  return render_template_string(
-      TRENDS_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      trends=json.dumps(sample_trends),
-  )
-
-
-@app.route("/draft-analyzer", methods=["GET", "POST"])
-def draft_analyzer():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-
-  sleeper_input = session.get("sleeper_input", "")
-  selected_league_id = session.get("selected_league_id", "")
-  user_leagues = session.get("user_leagues", [])
-  sleeper_msg = ""
-  draft_results = None
-
-  if request.method == "POST":
-    action = request.form.get("action")
-    sleeper_input = request.form.get("sleeper_input", "").strip()
-    form_league_id = request.form.get("sleeper_league_id", "").strip()
-    if form_league_id:
-      selected_league_id = form_league_id
-
-    if action in ["sync", "select_league"] or (
-        selected_league_id
-        and selected_league_id != session.get("selected_league_id")
-    ):
-      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
-
-    if action == "analyze_draft" and selected_league_id:
-      drafts = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts")
-      users = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/users")
-      user_id_map = {u["user_id"]: u.get("display_name", "Unknown") for u in users if "user_id" in u}
-
-      team_grades = {}
-      if isinstance(drafts, list) and len(drafts) > 0:
-        draft_id = drafts[0].get("draft_id")
-        draft_picks = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks")
-        player_map = get_sleeper_player_map()
-
-        if isinstance(draft_picks, list):
-          for p in draft_picks:
-            picked_by = p.get("picked_by")
-            owner_name = user_id_map.get(picked_by, f"Manager {picked_by}")
-            if owner_name not in team_grades:
-              team_grades[owner_name] = {"picks": [], "total_value": 0, "picks_count": 0}
-
-            pid = str(p.get("player_id"))
-            p_name = player_map.get(pid, "Prospect")
-            val = 2500 - (p.get("pick_no", 1) * 30)
-            if val < 400:
-              val = 400
-
-            team_grades[owner_name]["picks"].append({
-                "round": p.get("round"),
-                "pick_no": p.get("pick_no"),
-                "overall": p.get("pick_no"),
-                "player_name": p_name,
-                "value": val,
-                "expected_value": int(val * 0.95)
-            })
-            team_grades[owner_name]["total_value"] += val
-            team_grades[owner_name]["picks_count"] += 1
-
-          for name, data in team_grades.items():
-            tot = data["total_value"]
-            if tot > 12000:
-              grade = "S"
-            elif tot > 9000:
-              grade = "A"
-            elif tot > 6000:
-              grade = "B"
-            elif tot > 3000:
-              grade = "C"
-            else:
-              grade = "D"
-            data["grade"] = grade
-
-          draft_results = {"team_grades": team_grades}
-
-  return render_template_string(
-      DRAFT_ANALYZER_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      sleeper_input=sleeper_input,
-      user_leagues=user_leagues,
-      selected_league_id=selected_league_id,
-      sleeper_msg=sleeper_msg,
-      draft_results=draft_results,
   )
 
 
