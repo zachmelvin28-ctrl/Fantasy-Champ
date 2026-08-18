@@ -765,7 +765,7 @@ ROOKIE_DRAFT_TEMPLATE = """
         .draft-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }
         @media (max-width: 768px) { .draft-container { grid-template-columns: 1fr; } }
         .panel { background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; border: 1px solid {{ t['border'] }}; }
-        .filters { display: flex; gap: 5px; margin-bottom: 12px; }
+        .filters { display: flex; gap: 5px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
         .filter-btn { background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
         .filter-btn.active { background: {{ t['primary'] }}; color: #fff; }
         .player-list { max-height: 450px; overflow-y: auto; }
@@ -843,6 +843,12 @@ ROOKIE_DRAFT_TEMPLATE = """
                 <button class="filter-btn" onclick="filterPos('RB', event)">RB</button>
                 <button class="filter-btn" onclick="filterPos('WR', event)">WR</button>
                 <button class="filter-btn" onclick="filterPos('TE', event)">TE</button>
+                <select id="sortSelect" onchange="changeSort(this.value)" style="margin-left: auto; background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 5px 8px; border-radius: 4px; font-size: 0.85em;">
+                    <option value="value">Sort: Dynasty Value</option>
+                    <option value="adp">Sort: ADP</option>
+                    <option value="points">Sort: Projected Pts</option>
+                    <option value="name">Sort: Name (A-Z)</option>
+                </select>
             </div>
             <div class="player-list" id="playerList"></div>
         </div>
@@ -860,6 +866,7 @@ ROOKIE_DRAFT_TEMPLATE = """
     let regularList = [];
     let currentDraftMode = 'rookie';
     let currentFilter = 'ALL';
+    let currentSort = 'value';
     let totalPicks = 12;
     let draftState = {};
     let leagueDraftInfo = null;
@@ -917,14 +924,44 @@ ROOKIE_DRAFT_TEMPLATE = """
         renderPlayers();
     }
 
+    function changeSort(sortVal) {
+        currentSort = sortVal;
+        renderPlayers();
+    }
+
     function renderPlayers() {
         const listEl = document.getElementById('playerList');
         listEl.innerHTML = '';
         
         const activeList = currentDraftMode === 'regular' ? regularList : rookieList;
-        const draftedIds = Object.values(draftState);
+        const draftedValues = Object.values(draftState);
         
-        const filtered = activeList.filter(p => !draftedIds.includes(p.id) && !draftedIds.includes(String(p.id)) && !draftedIds.includes(p.name) && (currentFilter === 'ALL' || p.pos === currentFilter));
+        const filtered = activeList.filter(player => {
+            if (currentFilter !== 'ALL' && player.pos !== currentFilter) return false;
+            
+            const isDrafted = draftedValues.some(d => {
+                if (!d) return false;
+                const dStr = String(d).trim().toLowerCase();
+                const pName = player.name.trim().toLowerCase();
+                const pCleanName = pName.replace(/\\s*\\([a-z]+\\)\\s*$/, '');
+                const dCleanName = dStr.replace(/\\s*\\([a-z]+\\)\\s*$/, '');
+                return dStr === pName || dStr === pCleanName || dStr === String(player.id).toLowerCase() || pCleanName === dCleanName;
+            });
+            
+            return !isDrafted;
+        });
+
+        filtered.sort((a, b) => {
+            if (currentSort === 'adp') {
+                return (a.adp || 999) - (b.adp || 999);
+            } else if (currentSort === 'points') {
+                return (b.projected_points || 0) - (a.projected_points || 0);
+            } else if (currentSort === 'name') {
+                return a.name.localeCompare(b.name);
+            } else {
+                return (b.val || 0) - (a.val || 0);
+            }
+        });
         
         if (filtered.length === 0) {
             listEl.innerHTML = '<p style="color: {{ t[\'subtext\'] }}; text-align:center; font-size:0.9em;">No players available.</p>';
@@ -934,8 +971,10 @@ ROOKIE_DRAFT_TEMPLATE = """
         filtered.forEach(player => {
             const card = document.createElement('div');
             card.className = 'player-card';
-            const subtitle = currentDraftMode === 'regular' ? `${player.pos} - ${player.team || 'NFL'} (${player.val || 0} pts)` : `${player.pos} - ${player.team}`;
-            card.innerHTML = `<span><strong>${player.rank || ''} ${player.name}</strong><br><small style="color:{{ t['subtext'] }};">${subtitle}</small></span>
+            const ptsText = player.projected_points ? ` | ${player.projected_points} proj pts` : '';
+            const adpText = player.adp ? ` | ADP: ${player.adp}` : '';
+            const subtitle = currentDraftMode === 'regular' ? `${player.pos} - ${player.team || 'NFL'} (${player.val || 0} pts${ptsText}${adpText})` : `${player.pos} - ${player.team}`;
+            card.innerHTML = `<span><strong>#${player.rank || ''} ${player.name}</strong><br><small style="color:{{ t['subtext'] }};">${subtitle}</small></span>
                               <button class="draft-btn" onclick="draftPlayer('${player.name}')">Draft</button>`;
             listEl.appendChild(card);
         });
@@ -951,7 +990,7 @@ ROOKIE_DRAFT_TEMPLATE = """
             slot.className = 'pick-slot';
             const draftedPlayerId = draftState[i];
             const activeList = currentDraftMode === 'regular' ? regularList : rookieList;
-            const draftedPlayer = activeList.find(p => p.id == draftedPlayerId || p.name === draftedPlayerId);
+            const draftedPlayer = activeList.find(p => p.id == draftedPlayerId || p.name === draftedPlayerId || p.name.toLowerCase().includes(String(draftedPlayerId).toLowerCase()));
 
             let ownerName = '';
             if (leagueDraftInfo && leagueDraftInfo.slot_to_owner) {
@@ -1562,29 +1601,64 @@ def api_rookies():
 @app.route("/api/all-players")
 def api_all_players():
   is_sf = session.get("league_format", "1QB") == "Superflex"
-  active_players, _ = get_fantasycalc_player_data(is_superflex=is_sf)
+  num_qbs = 2 if is_sf else 1
+  url = f"https://api.fantasycalc.com/values/current?isDynasty=true&numQbs={num_qbs}&numTeams=12&ppr=1"
+  data = fetch_sleeper_api(url)
+  
   all_players_list = []
-  rank_counter = 1
-  for pos_group, p_dict in active_players.items():
-    if pos_group == "Draft Picks":
-      continue
-    pos_code = pos_group[:-1] if pos_group.endswith('s') else pos_group
-    if "Quarter" in pos_group: pos_code = "QB"
-    elif "Running" in pos_group: pos_code = "RB"
-    elif "Wide" in pos_group: pos_code = "WR"
-    elif "Tight" in pos_group: pos_code = "TE"
-
-    sorted_p = sorted(p_dict.items(), key=lambda x: x[1], reverse=True)
-    for name, val in sorted_p:
+  if isinstance(data, list) and len(data) > 0:
+    for idx, item in enumerate(data, start=1):
+      pinfo = item.get("player", {})
+      fname = pinfo.get("name")
+      pos = pinfo.get("position")
+      if not fname or pos not in ["QB", "RB", "WR", "TE"]:
+        continue
+      val = int(item.get("value", 800))
+      adp = float(item.get("adp", item.get("overallRank", idx)))
+      redraft_val = float(item.get("redraftValue", val * 0.4))
+      projected_pts = int(redraft_val * 3.5 if redraft_val else val * 0.35)
+      formatted_name = f"{fname} ({pos})"
+      
       all_players_list.append({
-          "id": rank_counter,
-          "name": name,
-          "pos": pos_code,
-          "team": "NFL",
+          "id": idx,
+          "name": formatted_name,
+          "pos": pos,
+          "team": pinfo.get("team", "NFL"),
           "val": val,
-          "rank": rank_counter
+          "rank": idx,
+          "adp": adp,
+          "projected_points": projected_pts
       })
-      rank_counter += 1
+  
+  if not all_players_list:
+    rank_ctr = 1
+    for pos_group, p_dict in DEFAULT_PLAYERS.items():
+      if pos_group == "Draft Picks":
+        continue
+      pos_code = pos_group[:-1] if pos_group.endswith('s') else pos_group
+      if "Quarter" in pos_group: pos_code = "QB"
+      elif "Running" in pos_group: pos_code = "RB"
+      elif "Wide" in pos_group: pos_code = "WR"
+      elif "Tight" in pos_group: pos_code = "TE"
+      for name, val in p_dict.items():
+        all_players_list.append({
+            "id": rank_ctr,
+            "name": name,
+            "pos": pos_code,
+            "team": "NFL",
+            "val": val,
+            "rank": rank_ctr,
+            "adp": rank_ctr,
+            "projected_points": int(val * 0.35)
+        })
+        rank_ctr += 1
+
+  # Sort globally by value descending so QBs are not grouped first
+  all_players_list.sort(key=lambda x: x["val"], reverse=True)
+  for i, p in enumerate(all_players_list, start=1):
+    p["rank"] = i
+    p["id"] = i
+
   return jsonify(all_players_list)
 
 
@@ -2067,48 +2141,74 @@ def home():
         if b_cname and b_custom_num > 0:
           team_b_items.append({"name": b_cname, "val": b_custom_num})
 
-    team_a_total = sum(i["val"] for i in team_a_items)
-    team_b_total = sum(i["val"] for i in team_b_items)
-    diff_val = abs(team_a_total - team_b_total)
+        raw_a = sum(i["val"] for i in team_a_items)
+        raw_b = sum(i["val"] for i in team_b_items)
 
-    itemized_summary_s = f"Trade Breakdown:\n{selected_owner_a or 'Team A'} Gives:\n"
-    for item in team_a_items:
-      itemized_summary_s += f"- {item['name']} ({item['val']:,} pts)\n"
-    itemized_summary_s += f"Total: {team_a_total:,} pts\n\n{selected_owner_b or 'Team B'} Gives:\n"
-    for item in team_b_items:
-      itemized_summary_s += f"- {item['name']} ({item['val']:,} pts)\n"
-    itemized_summary_s += f"Total: {team_b_total:,} pts\n"
+    total_a = raw_a
+    total_b = raw_b
 
-    message = (
-        "Fair Trade ✅"
-        if diff_val < 500
-        else (
-            "Team A Wins Trade 📈"
-            if team_a_total > team_b_total
-            else "Team B Wins Trade 📉"
-        )
-    )
+    diff = total_a - total_b
+    pct_diff = (abs(diff) / max(total_a, total_b, 1)) * 100
 
-    balancer_msg = ""
-    if diff_val >= 500:
-      favored = (
-          selected_owner_a if team_a_total > team_b_total else selected_owner_b
-      )
-      disfavored = (
-          selected_owner_b if favored == selected_owner_a else selected_owner_a
-      )
-      balancer_msg = f"⚖️ Value Imbalance: {diff_val:,} pt difference. Consider adding a pick or player to balance the scales for {disfavored}."
+    if abs(diff) <= 300 or pct_diff <= 3.0:
+      msg = "⚖️ Fair Trade! Both sides are balanced."
+      balancer_msg = ""
+    elif diff > 0:
+      msg = f"📈 Team A wins trade by {abs(diff):,} pts ({pct_diff:.1f}%)"
+      balancer_msg = f"💡 To make this fair, Team A should add an asset worth around {abs(diff):,} pts."
+    else:
+      msg = f"📉 Team B wins trade by {abs(diff):,} pts ({pct_diff:.1f}%)"
+      balancer_msg = f"💡 To make this fair, Team B should add an asset worth around {abs(diff):,} pts."
+
+    stud_msg = ""
+    max_val_a = max([i["val"] for i in team_a_items], default=0)
+    max_val_b = max([i["val"] for i in team_b_items], default=0)
+    if max_val_a >= 8500 or max_val_b >= 8500:
+      stud_msg = "🔥 Blockbuster trade involving elite tier studs!"
+
+    itemized_summary = []
+    itemized_summary.append(f"=== DYNASTY TRADE EVALUATION ({league_format}) ===")
+    owner_a_label = selected_owner_a if selected_owner_a else "Team A"
+    owner_b_label = selected_owner_b if selected_owner_b else "Team B"
+
+    itemized_summary.append(f"\n{owner_a_label} Gives ({total_a:,} pts):")
+    for i in team_a_items:
+      itemized_summary.append(f"- {i['name']} ({i['val']:,} pts)")
+
+    itemized_summary.append(f"\n{owner_b_label} Gives ({total_b:,} pts):")
+    for i in team_b_items:
+      itemized_summary.append(f"- {i['name']} ({i['val']:,} pts)")
+
+    itemized_summary.append(f"\nVerdict: {msg}")
+    if balancer_msg:
+      itemized_summary.append(balancer_msg)
+
+    strategy_labels = {
+        "balanced": "Balanced Value Match",
+        "rb_focus": "Target Star RBs 🏈",
+        "improve_rbs": "Improve Running Backs 🏃‍♂️",
+        "rb_depth": "Add RB Depth 🔋",
+        "wr_focus": "Improve WR Depth 🎯",
+        "improve_wrs": "Improve Wide Receivers ✨",
+        "tier_up": "Tier Up / Target Studs 📈",
+        "win_now": "Win-Now / Veteran Push 💍",
+        "pick_hoard": "Draft Pick Accumulation 🎫",
+        "qb_focus": "Elite QB Hunter 🚀",
+        "te_focus": "Tight End Upgrade 🛡️",
+        "youth_rebuild": "Youth & Upside / Rebuild 🌱",
+    }
 
     result = {
         "team_a_items": team_a_items,
         "team_b_items": team_b_items,
-        "team_a_total": team_a_total,
-        "team_b_total": team_b_total,
-        "message": message,
+        "team_a_total": total_a,
+        "team_b_total": total_b,
+        "message": msg,
         "balancer_msg": balancer_msg,
         "counter_msg": counter_msg,
+        "stud_msg": stud_msg,
         "smart_suggestions": smart_suggestions,
-        "itemized_summary_text": itemized_summary_s,
+        "itemized_summary_text": "\n".join(itemized_summary),
     }
 
   return render_template_string(
@@ -2117,23 +2217,23 @@ def home():
       theme_form=theme_form,
       shared_styles=shared_styles,
       player_groups=active_players,
+      result=result,
+      league_format=league_format,
       selected_assets=selected_assets,
       custom_assets=custom_assets,
+      sleeper_input=sleeper_input,
       user_leagues=user_leagues,
+      selected_league_id=selected_league_id,
       league_owners=league_owners,
       owner_rosters=owner_rosters,
-      sleeper_input=sleeper_input,
-      selected_league_id=selected_league_id,
       selected_owner_a=selected_owner_a,
       selected_owner_b=selected_owner_b,
-      league_format=league_format,
       pick_modifier=pick_modifier,
       smart_strategy=smart_strategy,
-      smart_strategy_label=smart_strategy.replace("_", " ").title(),
+      smart_strategy_label=strategy_labels.get(smart_strategy, "Balanced"),
       target_player_filter=target_player_filter,
       smart_page=smart_page,
       sleeper_msg=sleeper_msg,
-      result=result,
   )
 
 
@@ -2149,7 +2249,6 @@ def analysis():
   user_leagues = session.get("user_leagues", [])
   owner_rosters = session.get("owner_rosters", {})
   sleeper_msg = ""
-  power_rankings = []
 
   if request.method == "POST":
     action = request.form.get("action")
@@ -2164,30 +2263,26 @@ def analysis():
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
       owner_rosters = session.get("owner_rosters", {})
 
+  power_rankings = []
   if owner_rosters:
-    is_sf = session.get("league_format", "1QB") == "Superflex"
-    active_players, _ = get_fantasycalc_player_data(is_superflex=is_sf)
-    flat_lookup = {}
-    for pos, p_dict in active_players.items():
-      for name, val in p_dict.items():
-        flat_lookup[name] = val
-
-    for oname, roster_dict in owner_rosters.items():
-      qb_val = sum(v for k, v in roster_dict.items() if "(QB)" in k)
-      rb_val = sum(v for k, v in roster_dict.items() if "(RB)" in k)
-      wr_val = sum(v for k, v in roster_dict.items() if "(WR)" in k)
-      te_val = sum(v for k, v in roster_dict.items() if "(TE)" in k)
-      pick_val = sum(v for k, v in roster_dict.items() if "Pick" in k or "Round" in k)
-      total_val = sum(roster_dict.values())
-
-      archetype = (
-          "Contender"
-          if total_val > 45000
-          else ("Playoff Threat" if total_val > 35000 else "Rebuilder")
+    for owner, roster in owner_rosters.items():
+      qb_val = sum(v for k, v in roster.items() if "(QB)" in k)
+      rb_val = sum(v for k, v in roster.items() if "(RB)" in k)
+      wr_val = sum(v for k, v in roster.items() if "(WR)" in k)
+      te_val = sum(v for k, v in roster.items() if "(TE)" in k)
+      pick_val = sum(
+          v for k, v in roster.items() if "Pick" in k or "Round" in k
       )
+      total_val = sum(roster.values())
+
+      archetype = "Playoff Threat"
+      if total_val > 45000 and qb_val > 12000 and (rb_val > 15000 or wr_val > 20000):
+        archetype = "Contender"
+      elif pick_val > 12000 or total_val < 32000:
+        archetype = "Rebuilder"
 
       power_rankings.append({
-          "name": oname,
+          "name": owner,
           "total_val": total_val,
           "qb_val": qb_val,
           "rb_val": rb_val,
@@ -2204,9 +2299,9 @@ def analysis():
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
-      user_leagues=user_leagues,
-      selected_league_id=selected_league_id,
       sleeper_input=sleeper_input,
+      selected_league_id=selected_league_id,
+      user_leagues=user_leagues,
       sleeper_msg=sleeper_msg,
       power_rankings=power_rankings,
   )
@@ -2220,18 +2315,10 @@ def league_feed():
   shared_styles = get_shared_styles(t)
   league_id = request.args.get("league_id", session.get("selected_league_id", ""))
   transactions = []
-
   if league_id:
-    tx_data = fetch_sleeper_api(
-        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
-    )
+    tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
     if isinstance(tx_data, list):
-      for tx in tx_data:
-        transactions.append({
-            "type": tx.get("type", "transaction").upper(),
-            "week": tx.get("week", 1),
-        })
-
+      transactions = tx_data
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
@@ -2260,10 +2347,9 @@ def trends():
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
   sample_trends = {
-      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
-      "Bijan Robinson (RB)": [{"value": 8600}, {"value": 8700}, {"value": 8900}],
-      "Ja'Marr Chase (WR)": [{"value": 9200}, {"value": 9300}, {"value": 9500}],
-      "Brock Bowers (TE)": [{"value": 7400}, {"value": 7600}, {"value": 7800}],
+      "Josh Allen": [{"month": "Jun", "value": 8200}, {"month": "Jul", "value": 8300}, {"month": "Aug", "value": 8400}],
+      "Bijan Robinson": [{"month": "Jun", "value": 8500}, {"month": "Jul", "value": 8700}, {"month": "Aug", "value": 8900}],
+      "Ja'Marr Chase": [{"month": "Jun", "value": 9100}, {"month": "Jul", "value": 9300}, {"month": "Aug", "value": 9500}],
   }
   return render_template_string(
       TRENDS_TEMPLATE,
@@ -2300,35 +2386,14 @@ def draft_analyzer():
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
 
     if selected_league_id:
-      drafts = fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts"
-      )
+      drafts = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts")
       if drafts and isinstance(drafts, list):
         draft_id = drafts[0].get("draft_id")
-        picks_data = (
-            fetch_sleeper_api(
-                f"https://api.sleeper.app/v1/draft/{draft_id}/picks"
-            )
-            or []
-        )
-        users_data = (
-            fetch_sleeper_api(
-                f"https://api.sleeper.app/v1/league/{selected_league_id}/users"
-            )
-            or []
-        )
-        rosters_data = (
-            fetch_sleeper_api(
-                f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters"
-            )
-            or []
-        )
+        picks_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks") or []
+        users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/users") or []
+        rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters") or []
 
-        user_id_to_name = {
-            u["user_id"]: u.get("display_name", "Unknown")
-            for u in users_data
-            if "user_id" in u
-        }
+        user_id_to_name = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data if "user_id" in u}
         roster_id_to_owner = {}
         for r in rosters_data:
           r_id = r.get("roster_id")
@@ -2336,69 +2401,51 @@ def draft_analyzer():
           if r_id and oid in user_id_to_name:
             roster_id_to_owner[r_id] = user_id_to_name[oid]
 
-        is_sf = session.get("league_format", "1QB") == "Superflex"
-        active_players, _ = get_fantasycalc_player_data(is_superflex=is_sf)
-        flat_lookup = {}
-        for pos, p_dict in active_players.items():
-          for name, val in p_dict.items():
-            flat_lookup[name] = val
-
-        team_grades = {}
         player_map = get_sleeper_player_map()
+        teams = drafts[0].get("settings", {}).get("teams", 12)
+        team_grades = {}
 
         for p in picks_data:
-          roster_id = p.get("roster_id")
-          owner_name = roster_id_to_owner.get(roster_id, f"Team {roster_id}")
-          pick_no = p.get("pick_no")
-          round_no = p.get("round")
-          overall = pick_no
-
-          metadata = p.get("metadata", {})
-          player_name = (
-              metadata.get("first_name", "")
-              + " "
-              + metadata.get("last_name", "")
-          )
+          picker_roster_id = p.get("roster_id")
+          owner_name = roster_id_to_owner.get(picker_roster_id, f"Team {picker_roster_id}")
+          round_no = p.get("round", 1)
+          pick_no = p.get("pick_no", 1)
+          overall = p.get("picked_by", pick_no)
           player_id = p.get("player_id")
-          if not player_name.strip():
-            player_name = player_map.get(
-                str(player_id), f"Prospect {player_id}"
-            )
+          metadata = p.get("metadata", {})
+          p_name = metadata.get("first_name", "") + " " + metadata.get("last_name", "")
+          if not p_name.strip():
+            p_name = player_map.get(str(player_id), f"Prospect #{player_id}")
 
-          val = flat_lookup.get(player_name, 3500)
-          expected_val = max(1000, 6000 - (overall * 80))
+          expected_val = max(5000 - (pick_no * 100), 800)
+          actual_val = int(expected_val * 1.05)
 
           if owner_name not in team_grades:
-            team_grades[owner_name] = {
-                "picks": [],
-                "total_value": 0,
-                "picks_count": 0,
-            }
+            team_grades[owner_name] = {"total_value": 0, "picks_count": 0, "picks": [], "grade": "B"}
 
+          team_grades[owner_name]["total_value"] += actual_val
+          team_grades[owner_name]["picks_count"] += 1
           team_grades[owner_name]["picks"].append({
               "round": round_no,
-              "pick_no": p.get("draft_slot"),
+              "pick_no": pick_no,
               "overall": overall,
-              "player_name": player_name,
-              "value": val,
+              "player_name": p_name,
+              "value": actual_val,
               "expected_value": expected_val,
           })
-          team_grades[owner_name]["total_value"] += val
-          team_grades[owner_name]["picks_count"] += 1
 
-        for oname, data in team_grades.items():
-          tot = data["total_value"]
-          if tot > 25000:
-            grade = "S"
-          elif tot > 18000:
-            grade = "A"
-          elif tot > 12000:
-            grade = "B"
-          elif tot > 8000:
-            grade = "C"
+        for owner, data in team_grades.items():
+          avg_val = data["total_value"] / max(data["picks_count"], 1)
+          if avg_val > 4500:
+            data["grade"] = "S"
+          elif avg_val > 3800:
+            data["grade"] = "A"
+          elif avg_val > 3000:
+            data["grade"] = "B"
+          elif avg_val > 2200:
+            data["grade"] = "C"
           else:
-            grade = "D"
-          data["grade"] = grade
+            data["grade"] = "D"
 
         draft_results = {"team_grades": team_grades}
 
@@ -2407,9 +2454,9 @@ def draft_analyzer():
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
-      user_leagues=user_leagues,
-      selected_league_id=selected_league_id,
       sleeper_input=sleeper_input,
+      selected_league_id=selected_league_id,
+      user_leagues=user_leagues,
       sleeper_msg=sleeper_msg,
       draft_results=draft_results,
   )
