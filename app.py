@@ -2153,57 +2153,115 @@ def rookie_draft():
   )
 
 
-@app.route("/api/rookies", methods=["GET"])
+@app.route("/api/rookies")
 def api_rookies():
   return jsonify(ROOKIE_PROSPECTS)
 
 
-@app.route("/api/league-draft-info", methods=["GET"])
+@app.route("/api/league-draft-info")
 def api_league_draft_info():
-  selected_league_id = session.get("selected_league_id")
-  if not selected_league_id:
+  league_id = session.get("selected_league_id")
+  if not league_id:
     return jsonify({"success": False})
-
-  drafts = (
-      fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts"
-      )
-      or []
+  league_data = fetch_sleeper_api(
+      f"https://api.sleeper.app/v1/league/{league_id}"
   )
-  if not drafts:
+  if not league_data:
     return jsonify({"success": False})
-
-  draft_id = drafts[0].get("draft_id")
-  if not draft_id:
-    return jsonify({"success": False})
-
-  draft_details = (
-      fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}") or {}
-  )
-  settings = draft_details.get("settings", {})
-  teams = settings.get("teams", 10)
-  slot_to_owner = draft_details.get("draft_order", {})
 
   users_data = (
-      fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{selected_league_id}/users"
-      )
+      fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/users")
       or []
   )
+  rosters_data = (
+      fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/rosters")
+      or []
+  )
+
   user_id_to_name = {
-      u["user_id"]: u.get("display_name", "Unknown") for u in users_data
+      u["user_id"]: u.get("display_name", "Unknown")
+      for u in users_data
+      if "user_id" in u
+  }
+  roster_id_to_owner = {}
+  for r in rosters_data:
+    r_id = r.get("roster_id")
+    oid = r.get("owner_id")
+    if r_id and oid in user_id_to_name:
+      roster_id_to_owner[r_id] = user_id_to_name[oid]
+
+  teams_count = len(rosters_data) or 10
+  slot_to_owner = {
+      str(i): roster_id_to_owner.get(i, f"Team {i}")
+      for i in range(1, teams_count + 1)
   }
 
-  formatted_slot_to_owner = {}
-  if isinstance(slot_to_owner, dict):
-    for slot, uid in slot_to_owner.items():
-      formatted_slot_to_owner[str(slot)] = user_id_to_name.get(uid, "Team")
+  return jsonify(
+      {"success": True, "teams": teams_count, "slot_to_owner": slot_to_owner}
+  )
 
-  return jsonify({
-      "success": True,
-      "teams": teams,
-      "slot_to_owner": formatted_slot_to_owner,
-  })
+
+@app.route("/trends")
+def trends():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  sample_trends = {
+      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
+      "Bijan Robinson (RB)": [{"value": 8600}, {"value": 8700}, {"value": 8900}],
+      "Ja'Marr Chase (WR)": [{"value": 9200}, {"value": 9300}, {"value": 9500}],
+      "Brock Bowers (TE)": [{"value": 7400}, {"value": 7600}, {"value": 7800}],
+  }
+  return render_template_string(
+      TRENDS_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      trends=json.dumps(sample_trends),
+  )
+
+
+@app.route("/league-feed")
+def league_feed():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+
+  league_id = request.args.get("league_id", "")
+  transactions = []
+  if league_id:
+    tx_data = fetch_sleeper_api(
+        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
+    )
+    if isinstance(tx_data, list):
+      for tx in tx_data:
+        transactions.append({
+            "type": tx.get("type", "Transaction").replace("_", " ").title(),
+            "week": tx.get("week", 1),
+        })
+
+  return render_template_string(
+      LEAGUE_FEED_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles,
+      league_id=league_id,
+      transactions=transactions,
+  )
+
+
+@app.route("/hall-of-fame")
+def hall_of_fame():
+  theme_key, t = get_current_theme_data()
+  current_team = session.get("favorite_team", "")
+  theme_form = render_theme_form(theme_key, current_team)
+  shared_styles = get_shared_styles(t)
+  return render_template_string(
+      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
+  )
 
 
 @app.route("/draft-analyzer", methods=["GET", "POST"])
@@ -2226,21 +2284,19 @@ def draft_analyzer():
     if form_league_id:
       selected_league_id = form_league_id
 
-    if action in ["sync", "select_league"] or (
+    if action in ["sync", "analyze_draft"] or (
         selected_league_id
         and selected_league_id != session.get("selected_league_id")
     ):
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
 
-    if action == "analyze_draft" and selected_league_id:
-      drafts = (
-          fetch_sleeper_api(
-              f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts"
-          )
-          or []
-      )
-      if drafts:
-        draft_id = drafts[0].get("draft_id")
+  if selected_league_id:
+    league_data = fetch_sleeper_api(
+        f"https://api.sleeper.app/v1/league/{selected_league_id}"
+    )
+    if league_data:
+      draft_id = league_data.get("draft_id")
+      if draft_id:
         picks_data = (
             fetch_sleeper_api(
                 f"https://api.sleeper.app/v1/draft/{draft_id}/picks"
@@ -2256,69 +2312,50 @@ def draft_analyzer():
         user_id_to_name = {
             u["user_id"]: u.get("display_name", "Unknown") for u in users_data
         }
-
         player_map = get_sleeper_player_map()
-        league_format = session.get("league_format", "1QB")
-        active_players = fetch_live_fantasycalc_values(
-            is_superflex=(league_format == "Superflex")
-        )
-        flat_lookup = {}
-        for pos, p_dict in active_players.items():
-          for name, val in p_dict.items():
-            flat_lookup[name] = val
 
-        team_grades = {}
-        round_expected_values = {1: 4800, 2: 2200, 3: 1000, 4: 500}
-
+        team_grades_dict = {}
         for pick in picks_data:
           owner_id = pick.get("picked_by")
           owner_name = user_id_to_name.get(owner_id, "Unknown Team")
-          player_id = pick.get("player_id")
-          player_name = player_map.get(str(player_id), "Unknown Player")
-          round_no = pick.get("round", 1)
-          pick_no = pick.get("pick_no", 1)
-          overall = pick.get("overall", 1)
-
-          val = flat_lookup.get(player_name, 1500)
-          expected_val = round_expected_values.get(round_no, 500)
-
-          if owner_name not in team_grades:
-            team_grades[owner_name] = {
+          if owner_name not in team_grades_dict:
+            team_grades_dict[owner_name] = {
                 "picks": [],
                 "total_value": 0,
                 "picks_count": 0,
             }
 
-          team_grades[owner_name]["picks"].append({
+          pid = pick.get("player_id")
+          pname = player_map.get(str(pid), "Unknown Prospect")
+          round_no = pick.get("round", 1)
+          pick_no = pick.get("draft_slot", 1)
+          overall = pick.get("pick_no", 1)
+
+          val = max(500, 5000 - (overall * 100))
+          team_grades_dict[owner_name]["picks"].append({
               "round": round_no,
               "pick_no": pick_no,
               "overall": overall,
-              "player_name": player_name,
+              "player_name": pname,
               "value": val,
-              "expected_value": expected_val,
+              "expected_value": val,
           })
-          team_grades[owner_name]["total_value"] += val
-          team_grades[owner_name]["picks_count"] += 1
+          team_grades_dict[owner_name]["total_value"] += val
+          team_grades_dict[owner_name]["picks_count"] += 1
 
-        for name, data in team_grades.items():
-          avg_val = (
-              data["total_value"] / max(data["picks_count"], 1)
-              if data["picks_count"] > 0
-              else 0
-          )
-          if avg_val >= 4000:
+        for tname, data in team_grades_dict.items():
+          tot = data["total_value"]
+          if tot > 15000:
             grade = "A+"
-          elif avg_val >= 3000:
+          elif tot > 10000:
             grade = "A"
-          elif avg_val >= 2000:
+          elif tot > 6000:
             grade = "B"
           else:
             grade = "C"
           data["grade"] = grade
 
-        draft_results = {"team_grades": team_grades}
-      else:
-        sleeper_msg = "Error: No draft found for this league."
+        draft_results = {"team_grades": team_grades_dict}
 
   return render_template_string(
       DRAFT_ANALYZER_TEMPLATE,
@@ -2333,70 +2370,5 @@ def draft_analyzer():
   )
 
 
-@app.route("/league-feed", methods=["GET"])
-def league_feed():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-  league_id = request.args.get("league_id", "")
-  transactions = []
-  if league_id:
-    tx_data = (
-        fetch_sleeper_api(
-            f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
-        )
-        or []
-    )
-    if isinstance(tx_data, list):
-      transactions = tx_data
-  return render_template_string(
-      LEAGUE_FEED_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      league_id=league_id,
-      transactions=transactions,
-  )
-
-
-@app.route("/hall-of-fame", methods=["GET"])
-def hall_of_fame():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-  return render_template_string(
-      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
-  )
-
-
-@app.route("/trends", methods=["GET"])
-def trends():
-  theme_key, t = get_current_theme_data()
-  current_team = session.get("favorite_team", "")
-  theme_form = render_theme_form(theme_key, current_team)
-  shared_styles = get_shared_styles(t)
-  sample_trends = {
-      "Bijan Robinson (RB)": [
-          {"month": "June", "value": 8500},
-          {"month": "July", "value": 8700},
-          {"month": "August", "value": 8900},
-      ],
-      "Ja'Marr Chase (WR)": [
-          {"month": "June", "value": 9200},
-          {"month": "July", "value": 9300},
-          {"month": "August", "value": 9500},
-      ],
-  }
-  return render_template_string(
-      TRENDS_TEMPLATE,
-      t=t,
-      theme_form=theme_form,
-      shared_styles=shared_styles,
-      trends=json.dumps(sample_trends),
-  )
-
-
 if __name__ == "__main__":
-  app.run(debug=True)
+  app.run(debug=True, port=5000)
