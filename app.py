@@ -1841,7 +1841,6 @@ def home():
             start_idx = (smart_page * page_size) % len(all_candidates)
             smart_suggestions = all_candidates[start_idx : start_idx + page_size]
 
-    # Build itemized asset lists
     team_a_items = []
     for item in selected_assets["team_a"]:
       val = flat_players.get(item, 800)
@@ -2160,57 +2159,50 @@ def api_rookies():
 
 @app.route("/api/league-draft-info")
 def api_league_draft_info():
-  league_id = session.get("selected_league_id")
-  if not league_id:
+  selected_league_id = session.get("selected_league_id")
+  if not selected_league_id:
     return jsonify({"success": False})
 
-  league_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}")
-  if not league_data:
-    return jsonify({"success": False})
-
-  draft_id = league_data.get("draft_id")
-  teams_count = league_data.get("total_rosters", 10)
-
-  slot_to_owner = {}
-  if draft_id:
-    draft_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}")
-    if draft_data and "slot_to_roster_id" in draft_data:
-      slot_to_roster = draft_data["slot_to_roster_id"]
-      rosters_data = (
-          fetch_sleeper_api(
-              f"https://api.sleeper.app/v1/league/{league_id}/rosters"
-          )
-          or []
-      )
-      users_data = (
-          fetch_sleeper_api(
-              f"https://api.sleeper.app/v1/league/{league_id}/users"
-          )
-          or []
-      )
-      user_id_to_name = {
-          u["user_id"]: u.get("display_name", "Unknown") for u in users_data
-      }
-
-      roster_id_to_name = {}
-      for r in rosters_data:
-        r_id = r.get("roster_id")
-        oid = r.get("owner_id")
-        if r_id and oid in user_id_to_name:
-          roster_id_to_name[r_id] = user_id_to_name[oid]
-
-      for slot_str, r_id in slot_to_roster.items():
-        owner_name = roster_id_to_name.get(r_id, f"Team {r_id}")
-        slot_to_owner[int(slot_str)] = owner_name
-
-  if not slot_to_owner:
-    league_owners = session.get("league_owners", [])
-    for idx, owner in enumerate(league_owners[:teams_count], 1):
-      slot_to_owner[idx] = owner
-
-  return jsonify(
-      {"success": True, "teams": teams_count, "slot_to_owner": slot_to_owner}
+  league_data = fetch_sleeper_api(
+      f"https://api.sleeper.app/v1/league/{selected_league_id}"
   )
+  draft_id = (
+      league_data.get("draft_id") if isinstance(league_data, dict) else None
+  )
+  if not draft_id:
+    return jsonify({"success": False})
+
+  draft_data = fetch_sleeper_api(
+      f"https://api.sleeper.app/v1/draft/{draft_id}"
+  )
+  if not draft_data or not isinstance(draft_data, dict):
+    return jsonify({"success": False})
+
+  teams = draft_data.get("settings", {}).get("teams", 10)
+  slot_to_owner = {}
+  draft_order = draft_data.get("draft_order", {})
+  users_data = (
+      fetch_sleeper_api(
+          f"https://api.sleeper.app/v1/league/{selected_league_id}/users"
+      )
+      or []
+  )
+  user_id_to_name = {
+      u["user_id"]: u.get("display_name", "Unknown")
+      for u in users_data
+      if "user_id" in u
+  }
+
+  if draft_order:
+    for uid, slot in draft_order.items():
+      uname = user_id_to_name.get(uid, "Team")
+      slot_to_owner[slot] = uname
+
+  return jsonify({
+      "success": True,
+      "teams": teams,
+      "slot_to_owner": slot_to_owner,
+  })
 
 
 @app.route("/league-feed")
@@ -2224,15 +2216,17 @@ def league_feed():
       "league_id", session.get("selected_league_id", "")
   )
   transactions = []
-
   if league_id:
     tx_data = fetch_sleeper_api(
         f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
     )
     if isinstance(tx_data, list):
       transactions = [
-          {"type": tx.get("type", "Trade").upper(), "week": tx.get("week", 1)}
-          for tx in tx_data[:15]
+          {
+              "type": tx.get("type", "trade").upper(),
+              "week": tx.get("week", 1),
+          }
+          for tx in tx_data
       ]
 
   return render_template_string(
@@ -2264,27 +2258,23 @@ def trends():
   shared_styles = get_shared_styles(t)
 
   sample_trends = {
-      "Josh Allen (QB)": [
-          {"month": "Jun", "value": 8200},
-          {"month": "Jul", "value": 8300},
-          {"month": "Aug", "value": 8400},
+      "Ja'Marr Chase (WR)": [
+          {"month": "June", "value": 9200},
+          {"month": "July", "value": 9350},
+          {"month": "August", "value": 9500},
       ],
       "Bijan Robinson (RB)": [
-          {"month": "Jun", "value": 8600},
-          {"month": "Jul", "value": 8750},
-          {"month": "Aug", "value": 8900},
-      ],
-      "Ja'Marr Chase (WR)": [
-          {"month": "Jun", "value": 9200},
-          {"month": "Jul", "value": 9350},
-          {"month": "Aug", "value": 9500},
+          {"month": "June", "value": 8500},
+          {"month": "July", "value": 8700},
+          {"month": "August", "value": 8900},
       ],
       "Brock Bowers (TE)": [
-          {"month": "Jun", "value": 7200},
-          {"month": "Jul", "value": 7500},
-          {"month": "Aug", "value": 7800},
+          {"month": "June", "value": 7200},
+          {"month": "July", "value": 7500},
+          {"month": "August", "value": 7800},
       ],
   }
+
   return render_template_string(
       TRENDS_TEMPLATE,
       t=t,
@@ -2317,16 +2307,16 @@ def draft_analyzer():
     if action in ["sync", "select_league"]:
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
     elif action == "analyze_draft":
-      if not selected_league_id:
-        sleeper_msg = "Please select a league first."
-      else:
+      if selected_league_id:
         league_data = fetch_sleeper_api(
             f"https://api.sleeper.app/v1/league/{selected_league_id}"
         )
-        draft_id = league_data.get("draft_id") if league_data else None
-        if not draft_id:
-          sleeper_msg = "No draft found for this league."
-        else:
+        draft_id = (
+            league_data.get("draft_id")
+            if isinstance(league_data, dict)
+            else None
+        )
+        if draft_id:
           picks_data = (
               fetch_sleeper_api(
                   f"https://api.sleeper.app/v1/draft/{draft_id}/picks"
@@ -2339,70 +2329,62 @@ def draft_analyzer():
               )
               or []
           )
-          rosters_data = (
-              fetch_sleeper_api(
-                  f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters"
-              )
-              or []
-          )
-          player_map = get_sleeper_player_map()
-
           user_id_to_name = {
-              u["user_id"]: u.get("display_name", "Unknown") for u in users_data
+              u["user_id"]: u.get("display_name", "Unknown")
+              for u in users_data
+              if "user_id" in u
           }
-          roster_id_to_name = {}
-          for r in rosters_data:
-            r_id = r.get("roster_id")
-            oid = r.get("owner_id")
-            if r_id and oid in user_id_to_name:
-              roster_id_to_name[r_id] = user_id_to_name[oid]
 
           team_grades = {}
           for pick in picks_data:
-            r_id = pick.get("roster_id")
-            team_name = roster_id_to_name.get(r_id, f"Team {r_id}")
-            pid = pick.get("player_id")
-            pname = player_map.get(str(pid), "Unknown Rookie")
-            overall = pick.get("pick_no", 1)
-            rd = pick.get("round", 1)
-            pick_no = pick.get("draft_slot", 1)
+            picker_id = pick.get("picked_by")
+            owner_name = user_id_to_name.get(picker_id, "Unknown Manager")
+            player_name = (
+                f"{pick.get('metadata', {}).get('first_name', '')} {pick.get('metadata', {}).get('last_name', '')} ({pick.get('metadata', {}).get('position', 'WR')})"
+            )
+            round_no = pick.get("round", 1)
+            pick_no = pick.get("pick_no", 1)
+            overall = pick.get("overall", 1)
+            val = int(pick.get("metadata", {}).get("value", 3000))
+            expected_val = 5000 - (overall * 150)
+            if expected_val < 500:
+              expected_val = 500
 
-            val = 2500 - (overall * 50)
-            if val < 500:
-              val = 500
-            expected_val = val
-
-            if team_name not in team_grades:
-              team_grades[team_name] = {
+            if owner_name not in team_grades:
+              team_grades[owner_name] = {
+                  "picks": [],
                   "total_value": 0,
                   "picks_count": 0,
-                  "picks": [],
-                  "grade": "A",
+                  "grade": "B",
               }
 
-            team_grades[team_name]["total_value"] += val
-            team_grades[team_name]["picks_count"] += 1
-            team_grades[team_name]["picks"].append({
-                "round": rd,
+            team_grades[owner_name]["picks"].append({
+                "round": round_no,
                 "pick_no": pick_no,
                 "overall": overall,
-                "player_name": pname,
+                "player_name": player_name,
                 "value": val,
                 "expected_value": expected_val,
             })
+            team_grades[owner_name]["total_value"] += val
+            team_grades[owner_name]["picks_count"] += 1
 
-          for tname, data in team_grades.items():
-            tot = data["total_value"]
-            if tot > 15000:
+          for name, data in team_grades.items():
+            avg_val = data["total_value"] / max(data["picks_count"], 1)
+            if avg_val > 4500:
               data["grade"] = "A+"
-            elif tot > 10000:
+            elif avg_val > 3500:
               data["grade"] = "A"
-            elif tot > 6000:
+            elif avg_val > 2500:
               data["grade"] = "B"
             else:
               data["grade"] = "C"
 
           draft_results = {"team_grades": team_grades}
+        else:
+          sleeper_msg = "Error: No draft found for this league."
+      else:
+        sleeper_msg = "Error: Please select a league first."
 
   return render_template_string(
       DRAFT_ANALYZER_TEMPLATE,
