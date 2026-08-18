@@ -126,29 +126,30 @@ NFL_TEAMS = {
 
 def get_shared_styles(t):
   return f"""
-    body {{ font-family: -apple-system, sans-serif; padding: 15px; background: {t['bg']}; color: {t['text']}; margin: 0; transition: background 0.3s, color 0.3s; }}
-    .container {{ max-width: 650px; margin: 0 auto; background: {t['container']}; padding: 20px; border-radius: 12px; border: 1px solid {t['border']}; }}
-    h2 {{ text-align: center; color: {t['text']}; margin-top: 0; }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; background: {t['bg']}; color: {t['text']}; margin: 0; transition: background 0.3s, color 0.3s; -webkit-tap-highlight-color: transparent; }}
+    .container {{ max-width: 700px; margin: 0 auto; background: {t['container']}; padding: 15px; border-radius: 12px; border: 1px solid {t['border']}; box-sizing: border-box; }}
+    @media (max-width: 480px) {{ .container {{ padding: 10px; border-radius: 8px; }} body {{ padding: 4px; }} }}
+    h2 {{ text-align: center; color: {t['text']}; margin-top: 0; font-size: 1.4em; }}
     .theme-bar {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; font-size: 0.85em; flex-wrap: wrap; }}
-    .theme-bar select {{ background: {t['input_bg']}; color: {t['text']}; border: 1px solid {t['border']}; padding: 4px 8px; border-radius: 4px; }}
-    .nav-tabs {{ display: flex; gap: 8px; margin-bottom: 20px; background: {t['panel']}; padding: 6px; border-radius: 8px; border: 1px solid {t['border']}; overflow-x: auto; }}
-    .nav-btn {{ flex: 1; text-align: center; padding: 10px; background: {t['input_bg']}; color: {t['subtext']}; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.9em; white-space: nowrap; }}
+    .theme-bar select {{ background: {t['input_bg']}; color: {t['text']}; border: 1px solid {t['border']}; padding: 6px; border-radius: 4px; max-width: 100%; }}
+    .nav-tabs {{ display: flex; gap: 6px; margin-bottom: 15px; background: {t['panel']}; padding: 6px; border-radius: 8px; border: 1px solid {t['border']}; overflow-x: auto; -webkit-overflow-scrolling: touch; }}
+    .nav-btn {{ flex: 0 0 auto; text-align: center; padding: 8px 12px; background: {t['input_bg']}; color: {t['subtext']}; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.85em; white-space: nowrap; }}
     .nav-btn.active {{ background: {t['primary']}; color: white; }}
     .sync-box {{ background: {t['panel']}; border: 1px solid {t['primary']}; padding: 12px; border-radius: 8px; margin-bottom: 15px; }}
-    .sync-inputs {{ display: flex; gap: 8px; margin-top: 6px; }}
-    input[type="text"], input[type="number"], select {{ background: {t['input_bg']}; color: {t['text']}; border: 1px solid {t['border']}; padding: 8px; border-radius: 4px; }}
-    input[type="text"] {{ flex: 2; }}
-    button {{ width: 100%; padding: 14px; background: {t['primary']}; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 10px; cursor: pointer; }}
+    .sync-inputs {{ display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }}
+    input[type="text"], input[type="number"], select {{ background: {t['input_bg']}; color: {t['text']}; border: 1px solid {t['border']}; padding: 10px; border-radius: 6px; font-size: 16px; box-sizing: border-box; }}
+    input[type="text"] {{ flex: 2; min-width: 140px; }}
+    button {{ width: 100%; padding: 12px; background: {t['primary']}; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 10px; cursor: pointer; }}
     button:hover {{ background: {t['primary_hover']}; }}
     .sync-msg {{ font-size: 0.85em; color: {t['primary']}; margin-top: 6px; font-weight: bold; }}
     .rank-card {{ background: {t['panel']}; border: 1px solid {t['border']}; padding: 12px 15px; border-radius: 8px; margin-bottom: 12px; }}
-    .rank-header {{ display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; font-weight: bold; color: {t['primary']}; margin-bottom: 6px; }}
+    .rank-header {{ display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; font-weight: bold; color: {t['primary']}; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }}
     .badge {{ padding: 3px 8px; border-radius: 4px; font-size: 0.75em; text-transform: uppercase; font-weight: bold; }}
     .badge-contender {{ background: #1b3320; color: #81c784; border: 1px solid #2e7d32; }}
     .badge-playoff {{ background: #00363a; color: #4dd0e1; border: 1px solid #00acc1; }}
     .badge-rebuild {{ background: #3e2723; color: #ffb74d; border: 1px solid #ef6c00; }}
-    .breakdown-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center; margin-top: 8px; background: {t['input_bg']}; padding: 8px; border-radius: 6px; font-size: 0.85em; }}
-    .breakdown-item span {{ display: block; color: {t['subtext']}; font-size: 0.75em; }}
+    .breakdown-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center; margin-top: 8px; background: {t['input_bg']}; padding: 8px; border-radius: 6px; font-size: 0.8em; }}
+    .breakdown-item span {{ display: block; color: {t['subtext']}; font-size: 0.7em; }}
 """
 
 
@@ -165,16 +166,16 @@ def render_theme_form(current_theme, current_team=""):
 
   return f"""
     <div class="theme-bar">
-        <form method="POST" action="/set-preference" style="margin:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <div style="display:flex; align-items:center; gap:6px;">
+        <form method="POST" action="/set-preference" style="margin:0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%;">
+            <div style="display:flex; align-items:center; gap:4px; flex:1; min-width:140px;">
                 <label>🎨 Theme:</label>
-                <select name="theme_choice" onchange="this.form.submit()">
+                <select name="theme_choice" onchange="this.form.submit()" style="width:150px; padding:4px;">
                     {options}
                 </select>
             </div>
-            <div style="display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:4px; flex:1; min-width:140px;">
                 <label>🛡️ Team:</label>
-                <select name="favorite_team" onchange="this.form.submit()">
+                <select name="favorite_team" onchange="this.form.submit()" style="width:150px; padding:4px;">
                     {team_options}
                 </select>
             </div>
@@ -239,7 +240,6 @@ DEFAULT_PLAYERS = {
         "Blake Corum (RB)": 4200,
         "Jaylen Wright (RB)": 3900,
         "MarShawn Lloyd (RB)": 3500,
-        "DJ Giddens (RB)": 1200,
         "Quinshon Judkins (RB)": 4500,
         "TreVeyon Henderson (RB)": 4200,
     },
@@ -278,7 +278,6 @@ DEFAULT_PLAYERS = {
         "Xavier Legette (WR)": 4800,
         "Ja'Lynn Polk (WR)": 4400,
         "Adonai Mitchell (WR)": 4300,
-        "Tory Horton (WR)": 1100,
         "Luther Burden III (WR)": 5000,
         "Tetairoa McMillan (WR)": 4800,
     },
@@ -315,16 +314,16 @@ DEFAULT_PLAYERS = {
 }
 
 ROOKIE_PROSPECTS = [
-    {"id": 1, "name": "Jeremiyah Love", "pos": "RB", "team": "Arizona Cardinals", "rank": 1},
-    {"id": 2, "name": "Carnell Tate", "pos": "WR", "team": "Tennessee Titans", "rank": 2},
-    {"id": 3, "name": "Jordyn Tyson", "pos": "WR", "team": "New Orleans Saints", "rank": 3},
-    {"id": 4, "name": "Makai Lemon", "pos": "WR", "team": "Philadelphia Eagles", "rank": 4},
-    {"id": 5, "name": "Jadarian Price", "pos": "RB", "team": "Seattle Seahawks", "rank": 5},
-    {"id": 6, "name": "KC Concepcion", "pos": "WR", "team": "Cleveland Browns", "rank": 6},
-    {"id": 7, "name": "Fernando Mendoza", "pos": "QB", "team": "Las Vegas Raiders", "rank": 7},
-    {"id": 8, "name": "Kenyon Sadiq", "pos": "TE", "team": "New York Jets", "rank": 8},
-    {"id": 9, "name": "Omar Cooper Jr.", "pos": "WR", "team": "New York Jets", "rank": 9},
-    {"id": 10, "name": "Denzel Boston", "pos": "WR", "team": "Cleveland Browns", "rank": 10},
+    {"id": 1, "name": "Jeremiyah Love", "pos": "RB", "team": "Arizona Cardinals", "rank": 1, "val": 7900, "adp": 1.2, "projected_points": 240},
+    {"id": 2, "name": "Carnell Tate", "pos": "WR", "team": "Tennessee Titans", "rank": 2, "val": 7600, "adp": 2.1, "projected_points": 225},
+    {"id": 3, "name": "Jordyn Tyson", "pos": "WR", "team": "New Orleans Saints", "rank": 3, "val": 7300, "adp": 3.0, "projected_points": 210},
+    {"id": 4, "name": "Makai Lemon", "pos": "WR", "team": "Philadelphia Eagles", "rank": 4, "val": 7000, "adp": 4.2, "projected_points": 195},
+    {"id": 5, "name": "Jadarian Price", "pos": "RB", "team": "Seattle Seahawks", "rank": 5, "val": 6800, "adp": 5.1, "projected_points": 190},
+    {"id": 6, "name": "KC Concepcion", "pos": "WR", "team": "Cleveland Browns", "rank": 6, "val": 6500, "adp": 6.4, "projected_points": 180},
+    {"id": 7, "name": "Fernando Mendoza", "pos": "QB", "team": "Las Vegas Raiders", "rank": 7, "val": 6200, "adp": 7.0, "projected_points": 260},
+    {"id": 8, "name": "Kenyon Sadiq", "pos": "TE", "team": "New York Jets", "rank": 8, "val": 5800, "adp": 8.5, "projected_points": 150},
+    {"id": 9, "name": "Omar Cooper Jr.", "pos": "WR", "team": "New York Jets", "rank": 9, "val": 5500, "adp": 9.2, "projected_points": 140},
+    {"id": 10, "name": "Denzel Boston", "pos": "WR", "team": "Cleveland Browns", "rank": 10, "val": 5200, "adp": 10.1, "projected_points": 135},
 ]
 
 CALCULATOR_TEMPLATE = """
@@ -336,31 +335,31 @@ CALCULATOR_TEMPLATE = """
     <style>
         {{ shared_styles }}
         .toggle-group { display: flex; justify-content: space-around; background: {{ t['panel'] }}; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid {{ t['border'] }}; }
-        .toggle-group label { cursor: pointer; font-weight: bold; }
-        .team-section { background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid {{ t['border'] }}; }
-        .team-title { font-size: 1.1em; color: {{ t['primary'] }}; margin-bottom: 10px; font-weight: bold; }
+        .toggle-group label { cursor: pointer; font-weight: bold; font-size: 0.9em; }
+        .team-section { background: {{ t['panel'] }}; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid {{ t['border'] }}; }
+        .team-title { font-size: 1.05em; color: {{ t['primary'] }}; margin-bottom: 8px; font-weight: bold; }
         .roster-box { background: {{ t['card_bg'] }}; border: 1px solid {{ t['primary'] }}; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
-        .search-box { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 8px; background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; border-radius: 6px; }
+        .search-box { width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 10px; background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; border-radius: 6px; font-size: 16px; }
         details { background: {{ t['card_bg'] }}; margin-bottom: 8px; border-radius: 6px; padding: 8px; border: 1px solid {{ t['border'] }}; }
-        summary { font-weight: bold; cursor: pointer; color: {{ t['primary'] }}; }
+        summary { font-weight: bold; cursor: pointer; color: {{ t['primary'] }}; font-size: 0.95em; }
         .checkbox-grid { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 8px; }
-        .checkbox-item { display: flex; align-items: center; background: {{ t['panel'] }}; padding: 8px; border-radius: 4px; font-size: 0.95em; border: 1px solid {{ t['border'] }}; }
-        .checkbox-item input { margin-right: 10px; transform: scale(1.2); }
-        .custom-entry { margin-top: 12px; padding-top: 10px; border-top: 1px dashed {{ t['border'] }}; }
-        .custom-inputs { display: flex; gap: 8px; margin-top: 6px; }
-        input[type="number"] { flex: 1; }
+        .checkbox-item { display: flex; align-items: center; background: {{ t['panel'] }}; padding: 10px; border-radius: 6px; font-size: 0.95em; border: 1px solid {{ t['border'] }}; }
+        .checkbox-item input { margin-right: 10px; transform: scale(1.3); }
+        .custom-entry { margin-top: 10px; padding-top: 10px; border-top: 1px dashed {{ t['border'] }}; }
+        .custom-inputs { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+        input[type="number"] { flex: 1; min-width: 100px; }
         .btn-copy { background: #28a745; margin-top: 12px; }
         .btn-clear { background: #d9534f; margin-top: 10px; }
         .btn-suggest { background: #673ab7; margin-top: 10px; }
         .btn-smart { background: #00acc1; margin-top: 10px; }
         .btn-smart-more { background: #00796b; margin-top: 6px; }
-        .result { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; background: {{ t['panel'] }}; border: 1px solid {{ t['primary'] }}; }
+        .result { margin-top: 20px; padding: 12px; border-radius: 8px; text-align: center; background: {{ t['panel'] }}; border: 1px solid {{ t['primary'] }}; }
         .note { font-size: 0.9em; color: #ffca28; margin-top: 8px; }
         .suggestion { font-size: 0.95em; color: #81c784; margin-top: 10px; background: #1b3320; padding: 10px; border-radius: 6px; }
         .counter-msg { font-size: 0.95em; color: #b388ff; margin-top: 10px; background: #2a1b3d; border: 1px solid #7c4dff; padding: 10px; border-radius: 6px; }
         .smart-container { text-align: left; margin-top: 12px; }
-        .smart-card { font-size: 0.95em; color: {{ t['text'] }}; margin-top: 8px; background: {{ t['card_bg'] }}; border: 1px solid {{ t['primary'] }}; padding: 10px; border-radius: 6px; }
-        .pick-adjuster { background: {{ t['panel'] }}; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; }
+        .smart-card { font-size: 0.9em; color: {{ t['text'] }}; margin-top: 8px; background: {{ t['card_bg'] }}; border: 1px solid {{ t['primary'] }}; padding: 10px; border-radius: 6px; }
+        .pick-adjuster { background: {{ t['panel'] }}; padding: 10px; border-radius: 6px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; flex-wrap: wrap; gap: 8px; }
         .smart-options { background: {{ t['panel'] }}; border: 1px solid {{ t['primary'] }}; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
@@ -385,7 +384,7 @@ CALCULATOR_TEMPLATE = """
         <div class="sync-box">
             <small><b>⚡ Sleeper App Sync:</b></small>
             <div class="sync-inputs">
-                <input type="text" name="sleeper_input" id="sleeper_input" placeholder="Sleeper Username or League ID" value="{{ sleeper_input }}">
+                <input type="text" name="sleeper_input" id="sleeper_input" placeholder="Username or League ID" value="{{ sleeper_input }}">
                 <button type="submit" name="action" value="sync" style="width: auto; margin-top:0; padding: 8px 12px;">Fetch Leagues</button>
             </div>
 
@@ -413,7 +412,7 @@ CALCULATOR_TEMPLATE = """
 
         <div class="pick-adjuster">
             <small><b>📈 Dynamic Pick Valuation:</b></small>
-            <select name="pick_modifier" style="width: auto; padding: 4px;" onchange="document.getElementById('calcForm').submit()">
+            <select name="pick_modifier" style="width: auto; padding: 6px;" onchange="document.getElementById('calcForm').submit()">
                 <option value="1.0" {% if pick_modifier == 1.0 %}selected{% endif %}>Standard (100%)</option>
                 <option value="1.15" {% if pick_modifier == 1.15 %}selected{% endif %}>Draft SZN Hype (+15%)</option>
                 <option value="0.85" {% if pick_modifier == 0.85 %}selected{% endif %}>In-Season Contender (-15%)</option>
@@ -435,9 +434,9 @@ CALCULATOR_TEMPLATE = """
         {% endif %}
 
         <div class="smart-options">
-            <small style="color: {{ t['primary'] }};"><b>🧠 Smart Trade Finder Options (1-for-1s & Packages):</b></small>
+            <small style="color: {{ t['primary'] }};"><b>🧠 Smart Trade Finder Options:</b></small>
             <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 180px;">
+                <div style="flex: 1; min-width: 160px;">
                     <small>Strategy Focus:</small>
                     <select name="smart_strategy" style="width: 100%; margin-top: 4px;">
                         <option value="balanced" {% if smart_strategy == 'balanced' %}selected{% endif %}>Balanced Value Match</option>
@@ -454,9 +453,9 @@ CALCULATOR_TEMPLATE = """
                         <option value="youth_rebuild" {% if smart_strategy == 'youth_rebuild' %}selected{% endif %}>Youth & Upside / Rebuild 🌱</option>
                     </select>
                 </div>
-                <div style="flex: 1; min-width: 180px;">
+                <div style="flex: 1; min-width: 160px;">
                     <small>Specific Player Target (Optional):</small>
-                    <input type="text" name="target_player_filter" placeholder="e.g. Bo Jackson" value="{{ target_player_filter }}" style="width: 100%; box-sizing: border-box; margin-top: 4px;">
+                    <input type="text" name="target_player_filter" placeholder="e.g. Bijan" value="{{ target_player_filter }}" style="width: 100%; box-sizing: border-box; margin-top: 4px;">
                 </div>
             </div>
             <button type="submit" name="action" value="smart_more" class="btn-smart-more">🔄 Suggest More Trade Options</button>
@@ -484,13 +483,13 @@ CALCULATOR_TEMPLATE = """
 
             {% if current_owner and owner_rosters.get(current_owner) %}
             <div class="roster-box">
-                <small><b>📋 {{ current_owner }}'s Sleeper Roster (Players & Traded Picks):</b></small>
+                <small><b>📋 {{ current_owner }}'s Sleeper Roster:</b></small>
                 <div class="checkbox-grid" style="margin-top: 6px;">
                     {% for name, val in owner_rosters[current_owner].items() %}
                         <div class="checkbox-item" data-name="{{ name|lower }}">
-                            <label>
+                            <label style="display:flex; align-items:center; width:100%; cursor:pointer;">
                                 <input type="checkbox" name="{{ team_key }}" value="{{ name }}" {% if name in selected_assets[team_key] %}checked{% endif %}>
-                                {{ name }} ({{ val }})
+                                <span>{{ name }} ({{ val }})</span>
                             </label>
                         </div>
                     {% endfor %}
@@ -508,9 +507,9 @@ CALCULATOR_TEMPLATE = """
                         {% set is_pick = 'Pick' in name %}
                         {% set display_val = (base_val * pick_modifier)|int if is_pick else base_val %}
                         <div class="checkbox-item" data-name="{{ name|lower }}">
-                            <label>
+                            <label style="display:flex; align-items:center; width:100%; cursor:pointer;">
                                 <input type="checkbox" name="{{ team_key }}" value="{{ name }}" {% if name in selected_assets[team_key] %}checked{% endif %}>
-                                {{ name }} ({{ display_val }})
+                                <span>{{ name }} ({{ display_val }})</span>
                             </label>
                         </div>
                     {% endfor %}
@@ -530,14 +529,14 @@ CALCULATOR_TEMPLATE = """
 
         <button type="submit" name="action" value="analyze">Analyze Trade</button>
         <button type="submit" name="action" value="suggest_trade" class="btn-suggest">💡 Suggest Counter-Offer (Auto-Balance)</button>
-        <button type="submit" name="action" value="smart_suggestion" class="btn-smart">🧠 Smart Trade Suggestions (1-for-1s & Packages)</button>
+        <button type="submit" name="action" value="smart_suggestion" class="btn-smart">🧠 Smart Trade Suggestions</button>
         <button type="submit" name="action" value="clear_trade" class="btn-clear">🧹 Clear Trade Selections</button>
     </form>
 
     {% if result %}
         <div class="result">
             <div style="display: flex; justify-content: space-around; margin-bottom: 15px; text-align: left; gap: 10px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 240px;">
+                <div style="flex: 1; min-width: 220px;">
                     <b style="color: {{ t['primary'] }};">{{ selected_owner_a or 'Team A' }} Gives:</b>
                     <ul style="margin: 5px 0; padding-left: 15px; font-size: 0.9em;">
                         {% for item in result.team_a_items %}
@@ -546,7 +545,7 @@ CALCULATOR_TEMPLATE = """
                     </ul>
                     <p style="margin: 5px 0;"><b>Total:</b> {{ "{:,}".format(result.team_a_total) }} pts</p>
                 </div>
-                <div style="flex: 1; min-width: 240px; border-left: 1px solid {{ t['border'] }}; padding-left: 10px;">
+                <div style="flex: 1; min-width: 220px; border-left: 1px solid {{ t['border'] }}; padding-left: 10px;">
                     <b style="color: {{ t['primary'] }};">{{ selected_owner_b or 'Team B' }} Gives:</b>
                     <ul style="margin: 5px 0; padding-left: 15px; font-size: 0.9em;">
                         {% for item in result.team_b_items %}
@@ -567,7 +566,7 @@ CALCULATOR_TEMPLATE = """
 
             {% if result.smart_suggestions %}
                 <div class="smart-container">
-                    <small><b>🧠 Top League-Wide Trade Suggestions for {{ selected_owner_a }} (Focus: {{ smart_strategy_label }}) :</b></small>
+                    <small><b>🧠 Top Trade Suggestions for {{ selected_owner_a }} (Focus: {{ smart_strategy_label }}) :</b></small>
                     {% for s in result.smart_suggestions %}
                         <div class="smart-card">
                             <b>vs. {{ s.partner }}</b><br>
@@ -693,7 +692,7 @@ ANALYSIS_TEMPLATE = """
         <div class="sync-box">
             <small><b>⚡ Sync League for Analysis:</b></small>
             <div class="sync-inputs">
-                <input type="text" name="sleeper_input" placeholder="Sleeper Username or League ID" value="{{ sleeper_input }}">
+                <input type="text" name="sleeper_input" placeholder="Username or League ID" value="{{ sleeper_input }}">
                 <button type="submit" name="action" value="sync" style="width: auto; margin-top:0; padding: 8px 12px;">Fetch</button>
             </div>
 
@@ -762,26 +761,27 @@ ROOKIE_DRAFT_TEMPLATE = """
     <title>Live Draft Board</title>
     <style>
         {{ shared_styles }}
-        .draft-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }
-        @media (max-width: 768px) { .draft-container { grid-template-columns: 1fr; } }
-        .panel { background: {{ t['panel'] }}; padding: 15px; border-radius: 8px; border: 1px solid {{ t['border'] }}; }
-        .filters { display: flex; gap: 5px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
-        .filter-btn { background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
-        .filter-btn.active { background: {{ t['primary'] }}; color: #fff; }
-        .player-list { max-height: 450px; overflow-y: auto; }
-        .player-card { background: {{ t['card_bg'] }}; padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; }
-        .player-card:hover { border-color: {{ t['primary'] }}; }
-        .draft-grid { display: flex; flex-direction: column; gap: 8px; max-height: 480px; overflow-y: auto; }
-        .pick-slot { background: {{ t['card_bg'] }}; padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid {{ t['primary'] }}; border: 1px solid {{ t['border'] }}; font-size: 0.9em; }
-        button.draft-btn { background: {{ t['primary'] }}; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: auto; font-size: 0.85em; margin-top: 0; }
-        button.draft-btn:hover { background: {{ t['primary_hover'] }}; }
-        .sync-badge { background: {{ t['primary'] }}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; font-weight: bold; }
-        .live-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.9em; }
-        .draft-mode-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; background: {{ t['card_bg'] }}; padding: 8px; border-radius: 6px; border: 1px solid {{ t['border'] }}; }
+        .draft-container {{ display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }}
+        @media (max-width: 768px) {{ .draft-container {{ grid-template-columns: 1fr; }} }}
+        .panel {{ background: {{ t['panel'] }}; padding: 12px; border-radius: 8px; border: 1px solid {{ t['border'] }}; }}
+        .filters {{ display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }}
+        .filter-btn {{ background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; }}
+        .filter-btn.active {{ background: {{ t['primary'] }}; color: #fff; }}
+        .player-list {{ max-height: 420px; overflow-y: auto; -webkit-overflow-scrolling: touch; }}
+        .player-card {{ background: {{ t['card_bg'] }}; padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; gap: 8px; }}
+        .player-card:hover {{ border-color: {{ t['primary'] }}; }}
+        .draft-grid {{ display: flex; flex-direction: column; gap: 8px; max-height: 450px; overflow-y: auto; -webkit-overflow-scrolling: touch; }}
+        .pick-slot {{ background: {{ t['card_bg'] }}; padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid {{ t['primary'] }}; border: 1px solid {{ t['border'] }}; font-size: 0.9em; gap: 8px; }}
+        button.draft-btn {{ background: {{ t['primary'] }}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; width: auto; font-size: 0.85em; margin-top: 0; }}
+        button.draft-btn:hover {{ background: {{ t['primary_hover'] }}; }}
+        .sync-badge {{ background: {{ t['primary'] }}; color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; font-weight: bold; }}
+        .live-controls {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.9em; flex-wrap: wrap; gap: 8px; }}
+        .draft-mode-bar {{ display: flex; gap: 12px; margin-bottom: 12px; align-items: center; background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; border: 1px solid {{ t['border'] }}; flex-wrap: wrap; font-size: 0.9em; }}
+        .draft-mode-bar label {{ cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 4px; }}
     </style>
 </head>
 <body>
-<div class="container" style="max-width: 850px;">
+<div class="container" style="max-width: 900px;">
     {{ theme_form | safe }}
     <h2>📋 Live Sleeper Draft Board</h2>
     <div class="nav-tabs">
@@ -798,7 +798,7 @@ ROOKIE_DRAFT_TEMPLATE = """
         <div class="sync-box">
             <small><b>⚡ Sleeper App Sync:</b></small>
             <div class="sync-inputs">
-                <input type="text" name="sleeper_input" placeholder="Sleeper Username or League ID" value="{{ sleeper_input }}">
+                <input type="text" name="sleeper_input" placeholder="Username or League ID" value="{{ sleeper_input }}">
                 <button type="submit" name="action" value="sync" style="width: auto; margin-top:0; padding: 8px 12px;">Fetch</button>
             </div>
 
@@ -822,28 +822,41 @@ ROOKIE_DRAFT_TEMPLATE = """
 
     <div id="syncStatus"></div>
 
+    <!-- SEPARATE STARTUP, REGULAR, AND ROOKIE DRAFTS + 1QB/SF PPR FORMAT -->
     <div class="draft-mode-bar">
-        <small><b>Draft Type:</b></small>
-        <label><input type="radio" name="draft_mode" value="rookie" checked onchange="switchDraftMode('rookie')"> Rookie Draft Only</label>
-        <label><input type="radio" name="draft_mode" value="regular" onchange="switchDraftMode('regular')"> Regular / Startup Draft (All Players)</label>
+        <div>
+            <small style="display:block; color:{{ t['subtext'] }}; margin-bottom:4px;">Draft Type:</small>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <label><input type="radio" name="draft_mode" value="rookie" checked onchange="switchDraftMode('rookie')"> Rookie Draft</label>
+                <label><input type="radio" name="draft_mode" value="startup" onchange="switchDraftMode('startup')"> Startup Draft</label>
+                <label><input type="radio" name="draft_mode" value="regular" onchange="switchDraftMode('regular')"> Regular / Vet Draft</label>
+            </div>
+        </div>
+        <div style="margin-left:auto;">
+            <small style="display:block; color:{{ t['subtext'] }}; margin-bottom:4px;">Scoring / Format:</small>
+            <div style="display:flex; gap:10px;">
+                <label><input type="radio" name="draft_format" value="1QB" checked onchange="switchFormat('1QB')"> 1QB PPR</label>
+                <label><input type="radio" name="draft_format" value="Superflex" onchange="switchFormat('Superflex')"> Superflex PPR</label>
+            </div>
+        </div>
     </div>
 
     <div class="live-controls">
         <span id="liveStatusText" style="color: {{ t['subtext'] }}; font-size: 0.85em;">🟢 Live Draft Polling: Active</span>
-        <button onclick="loadLiveDraftData()" style="width: auto; margin-top: 0; padding: 4px 10px; font-size: 0.8em;">🔄 Force Refresh</button>
+        <button onclick="loadLiveDraftData()" style="width: auto; margin-top: 0; padding: 6px 12px; font-size: 0.85em;">🔄 Force Refresh</button>
     </div>
 
     <div class="draft-container">
-        <!-- Available Prospects Panel -->
+        <!-- Available Prospects / Players Panel -->
         <div class="panel">
-            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.1em;" id="poolTitle">Available Prospects</h3>
+            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.05em;" id="poolTitle">Available Prospects</h3>
             <div class="filters">
                 <button class="filter-btn active" onclick="filterPos('ALL', event)">ALL</button>
                 <button class="filter-btn" onclick="filterPos('QB', event)">QB</button>
                 <button class="filter-btn" onclick="filterPos('RB', event)">RB</button>
                 <button class="filter-btn" onclick="filterPos('WR', event)">WR</button>
                 <button class="filter-btn" onclick="filterPos('TE', event)">TE</button>
-                <select id="sortSelect" onchange="changeSort(this.value)" style="margin-left: auto; background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 5px 8px; border-radius: 4px; font-size: 0.85em;">
+                <select id="sortSelect" onchange="changeSort(this.value)" style="margin-left: auto; background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 6px; border-radius: 6px; font-size: 0.85em;">
                     <option value="value">Sort: Dynasty Value</option>
                     <option value="adp">Sort: ADP</option>
                     <option value="points">Sort: Projected Pts</option>
@@ -855,7 +868,7 @@ ROOKIE_DRAFT_TEMPLATE = """
 
         <!-- Draft Board Grid Panel -->
         <div class="panel">
-            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.1em;" id="boardTitle">Live Draft Board (Rounds 1+)</h3>
+            <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.05em;" id="boardTitle">Live Draft Board (Rounds 1+)</h3>
             <div class="draft-grid" id="draftGrid"></div>
         </div>
     </div>
@@ -863,8 +876,10 @@ ROOKIE_DRAFT_TEMPLATE = """
 
 <script>
     let rookieList = [];
+    let startupList = [];
     let regularList = [];
     let currentDraftMode = 'rookie';
+    let currentFormat = '1QB';
     let currentFilter = 'ALL';
     let currentSort = 'value';
     let totalPicks = 12;
@@ -874,12 +889,14 @@ ROOKIE_DRAFT_TEMPLATE = """
 
     async function loadLiveDraftData() {
         try {
-            const [rookRes, regRes, draftRes] = await Promise.all([
+            const [rookRes, startRes, regRes, draftRes] = await Promise.all([
                 fetch('/api/rookies'),
-                fetch('/api/all-players'),
+                fetch(`/api/all-players?format=${currentFormat}&type=startup`),
+                fetch(`/api/all-players?format=${currentFormat}&type=regular`),
                 fetch('/api/league-draft-info')
             ]);
             rookieList = await rookRes.json();
+            startupList = await startRes.json();
             regularList = await regRes.json();
             const draftData = await draftRes.json();
             
@@ -913,8 +930,18 @@ ROOKIE_DRAFT_TEMPLATE = """
 
     function switchDraftMode(mode) {
         currentDraftMode = mode;
-        document.getElementById('poolTitle').innerText = mode === 'regular' ? 'Available Players (Startup/Regular)' : 'Available Prospects';
+        const titles = {
+            'rookie': 'Available Prospects (Rookie Draft)',
+            'startup': 'Available Players (Startup Draft)',
+            'regular': 'Available Players (Regular/Vet Draft)'
+        };
+        document.getElementById('poolTitle').innerText = titles[mode] || 'Available Players';
         renderPlayers();
+    }
+
+    function switchFormat(fmt) {
+        currentFormat = fmt;
+        loadLiveDraftData();
     }
 
     function filterPos(pos, event) {
@@ -933,7 +960,10 @@ ROOKIE_DRAFT_TEMPLATE = """
         const listEl = document.getElementById('playerList');
         listEl.innerHTML = '';
         
-        const activeList = currentDraftMode === 'regular' ? regularList : rookieList;
+        let activeList = rookieList;
+        if (currentDraftMode === 'startup') activeList = startupList;
+        else if (currentDraftMode === 'regular') activeList = regularList;
+
         const draftedValues = Object.values(draftState);
         
         const filtered = activeList.filter(player => {
@@ -973,7 +1003,7 @@ ROOKIE_DRAFT_TEMPLATE = """
             card.className = 'player-card';
             const ptsText = player.projected_points ? ` | ${player.projected_points} proj pts` : '';
             const adpText = player.adp ? ` | ADP: ${player.adp}` : '';
-            const subtitle = currentDraftMode === 'regular' ? `${player.pos} - ${player.team || 'NFL'} (${player.val || 0} pts${ptsText}${adpText})` : `${player.pos} - ${player.team}`;
+            const subtitle = currentDraftMode === 'rookie' ? `${player.pos} - ${player.team}` : `${player.pos} - ${player.team || 'NFL'} (${player.val || 0} pts${ptsText}${adpText})`;
             card.innerHTML = `<span><strong>#${player.rank || ''} ${player.name}</strong><br><small style="color:{{ t['subtext'] }};">${subtitle}</small></span>
                               <button class="draft-btn" onclick="draftPlayer('${player.name}')">Draft</button>`;
             listEl.appendChild(card);
@@ -984,12 +1014,15 @@ ROOKIE_DRAFT_TEMPLATE = """
         const gridEl = document.getElementById('draftGrid');
         gridEl.innerHTML = '';
 
+        let activeList = rookieList;
+        if (currentDraftMode === 'startup') activeList = startupList;
+        else if (currentDraftMode === 'regular') activeList = regularList;
+
         const displayCount = Math.max(totalPicks, 24);
         for (let i = 1; i <= displayCount; i++) {
             const slot = document.createElement('div');
             slot.className = 'pick-slot';
             const draftedPlayerId = draftState[i];
-            const activeList = currentDraftMode === 'regular' ? regularList : rookieList;
             const draftedPlayer = activeList.find(p => p.id == draftedPlayerId || p.name === draftedPlayerId || p.name.toLowerCase().includes(String(draftedPlayerId).toLowerCase()));
 
             let ownerName = '';
@@ -1160,7 +1193,7 @@ DRAFT_ANALYZER_TEMPLATE = """
     <style>
         {{ shared_styles }}
         .draft-summary-card { background: {{ t['panel'] }}; border: 1px solid {{ t['border'] }}; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .pick-row { background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; font-size: 0.9em; }
+        .pick-row { background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; font-size: 0.9em; gap: 8px; }
         .badge-grade { padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85em; text-transform: uppercase; }
         .grade-s { background: #1b3320; color: #81c784; border: 1px solid #2e7d32; }
         .grade-a { background: #00363a; color: #4dd0e1; border: 1px solid #00acc1; }
@@ -1187,7 +1220,7 @@ DRAFT_ANALYZER_TEMPLATE = """
         <div class="sync-box">
             <small><b>⚡ Sync League for Draft Analysis:</b></small>
             <div class="sync-inputs">
-                <input type="text" name="sleeper_input" placeholder="Sleeper Username or League ID" value="{{ sleeper_input }}">
+                <input type="text" name="sleeper_input" placeholder="Username or League ID" value="{{ sleeper_input }}">
                 <button type="submit" name="action" value="sync" style="width: auto; margin-top:0; padding: 8px 12px;">Fetch Leagues</button>
             </div>
 
@@ -1214,7 +1247,7 @@ DRAFT_ANALYZER_TEMPLATE = """
             <h3 style="color: {{ t['primary'] }};">🏆 Team Draft Value & Grades</h3>
             {% for team_name, data in draft_results.team_grades.items() %}
                 <div class="draft-summary-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap:wrap; gap:6px;">
                         <b style="font-size: 1.1em; color: {{ t['primary'] }};">{{ team_name }}</b>
                         <div>
                             <span class="badge-grade {% if data.grade == 'S' %}grade-s{% elif data.grade == 'A' %}grade-a{% elif data.grade == 'B' %}grade-b{% elif data.grade == 'C' %}grade-c{% else %}grade-d{% endif %}">Grade: {{ data.grade }}</span>
@@ -1600,7 +1633,9 @@ def api_rookies():
 
 @app.route("/api/all-players")
 def api_all_players():
-  is_sf = session.get("league_format", "1QB") == "Superflex"
+  format_arg = request.args.get("format", "1QB")
+  draft_type = request.args.get("type", "startup")
+  is_sf = format_arg == "Superflex"
   num_qbs = 2 if is_sf else 1
   url = f"https://api.fantasycalc.com/values/current?isDynasty=true&numQbs={num_qbs}&numTeams=12&ppr=1"
   data = fetch_sleeper_api(url)
@@ -1614,6 +1649,11 @@ def api_all_players():
       if not fname or pos not in ["QB", "RB", "WR", "TE"]:
         continue
       val = int(item.get("value", 800))
+      
+      # If regular draft, slightly adjust veteran weighting
+      if draft_type == "regular" and val > 7000:
+        val = int(val * 0.95)
+
       adp = float(item.get("adp", item.get("overallRank", idx)))
       redraft_val = float(item.get("redraftValue", val * 0.4))
       projected_pts = int(redraft_val * 3.5 if redraft_val else val * 0.35)
@@ -1653,7 +1693,6 @@ def api_all_players():
         })
         rank_ctr += 1
 
-  # Sort globally by value descending so QBs are not grouped first
   all_players_list.sort(key=lambda x: x["val"], reverse=True)
   for i, p in enumerate(all_players_list, start=1):
     p["rank"] = i
@@ -2051,165 +2090,134 @@ def home():
 
           filtered_candidates = []
           partner_counts = {}
-          seen_core_trades = set()
-
           for cand in all_candidates:
             partner = cand["partner"]
             if partner_counts.get(partner, 0) >= 1:
               continue
-
-            core_sig = (
-                partner,
-                cand["gives"].split(" (")[0],
-                cand["gets"].split(" (")[0],
-            )
-            if core_sig in seen_core_trades:
-              continue
-
-            seen_core_trades.add(core_sig)
             partner_counts[partner] = partner_counts.get(partner, 0) + 1
             filtered_candidates.append(cand)
 
-          all_candidates = filtered_candidates
-          page_size = 4
-          if len(all_candidates) > 0:
-            start_idx = (smart_page * page_size) % len(all_candidates)
-            smart_suggestions = all_candidates[start_idx : start_idx + page_size]
+          page_size = 3
+          start_idx = (smart_page * page_size) % max(
+              1, len(filtered_candidates)
+          )
+          end_idx = start_idx + page_size
+          smart_suggestions = filtered_candidates[start_idx:end_idx]
+          if not smart_suggestions and filtered_candidates:
+            smart_page = 0
+            session["smart_page"] = 0
+            smart_suggestions = filtered_candidates[0:page_size]
 
     team_a_items = []
-    for item in selected_assets["team_a"]:
-      val = flat_players.get(item, 800)
-      team_a_items.append({"name": item, "val": val})
-    if a_cname and a_custom_num > 0:
+    for name in selected_assets["team_a"]:
+      val = flat_players.get(name, 800)
+      team_a_items.append({"name": name, "val": val})
+    if a_cname:
       team_a_items.append({"name": a_cname, "val": a_custom_num})
 
     team_b_items = []
-    for item in selected_assets["team_b"]:
-      val = flat_players.get(item, 800)
-      team_b_items.append({"name": item, "val": val})
-    if b_cname and b_custom_num > 0:
+    for name in selected_assets["team_b"]:
+      val = flat_players.get(name, 800)
+      team_b_items.append({"name": name, "val": val})
+    if b_cname:
       team_b_items.append({"name": b_cname, "val": b_custom_num})
 
-    raw_a = sum(i["val"] for i in team_a_items)
-    raw_b = sum(i["val"] for i in team_b_items)
-    count_a = len(team_a_items)
-    count_b = len(team_b_items)
+    team_a_total = sum(item["val"] for item in team_a_items)
+    team_b_total = sum(item["val"] for item in team_b_items)
+    diff = team_b_total - team_a_total
 
-    temp_a_tot, temp_b_tot = raw_a, raw_b
-    if count_a > 0 and count_b > 0 and count_a != count_b:
-      if count_a < count_b:
-        temp_a_tot = int(raw_a * 1.10)
+    if not team_a_items and not team_b_items:
+      result = None
+    else:
+      msg = ""
+      if abs(diff) <= 300:
+        msg = "⚖️ Extremely Fair Trade (Even Value)"
+      elif diff > 300:
+        overpay_side = selected_owner_a or "Team A"
+        msg = f"📈 {overpay_side} wins by {abs(diff):,} points (Great Value)"
       else:
-        temp_b_tot = int(raw_b * 1.10)
+        overpay_side = selected_owner_b or "Team B"
+        msg = f"📉 {overpay_side} wins by {abs(diff):,} points (Great Value)"
 
-    if action == "suggest_trade" and temp_a_tot != temp_b_tot:
-      losing_team = "team_b" if temp_a_tot > temp_b_tot else "team_a"
-      winning_tot = temp_a_tot if losing_team == "team_b" else temp_b_tot
-      losing_tot = temp_b_tot if losing_team == "team_b" else temp_a_tot
-      diff = abs(winning_tot - losing_tot)
+      balancer_msg = ""
+      if action == "suggest_trade" and abs(diff) > 200:
+        needed_val = abs(diff)
+        closest_asset = None
+        closest_diff = 999999
+        search_pool = (
+            owner_rosters.get(selected_owner_b, {})
+            if diff < 0
+            else owner_rosters.get(selected_owner_a, {})
+        )
+        if not search_pool:
+          search_pool = flat_players
 
-      losing_owner = (
-          selected_owner_b if losing_team == "team_b" else selected_owner_a
+        for name, val in search_pool.items():
+          if name not in all_selected:
+            d = abs(val - needed_val)
+            if d < closest_diff:
+              closest_diff = d
+              closest_asset = (name, val)
+
+        if closest_asset:
+          side_str = (
+              selected_owner_b if diff < 0 else (selected_owner_a or "Team A")
+          )
+          balancer_msg = f"💡 To balance this trade, ask {side_str} to add/remove <b>{closest_asset[0]}</b> (~{closest_asset[1]:,} pts)."
+
+      stud_msg = ""
+      for item in team_a_items + team_b_items:
+        if item["val"] >= 8000:
+          stud_msg = f"⭐ Mega-Stud Alert: '{item['name']}' is a premier elite cornerstone asset!"
+          break
+
+      summary_lines = [
+          f"Dynasty Trade Breakdown ({league_format}):",
+          f"--- {selected_owner_a or 'Team A'} Gives ({team_a_total:,} pts) ---",
+      ]
+      for item in team_a_items:
+        summary_lines.append(f"• {item.name} ({item.val:,} pts)")
+      summary_lines.append(
+          f"\n--- {selected_owner_b or 'Team B'} Gives ({team_b_total:,} pts) ---"
       )
-      pool = (
-          owner_rosters.get(losing_owner, flat_players)
-          if losing_owner
-          else flat_players
-      )
-      available_pool = {
-          k: v for k, v in pool.items() if k not in all_selected
+      for item in team_b_items:
+        summary_lines.append(f"• {item.name} ({item.val:,} pts)")
+      summary_lines.append(f"\nVerdict: {msg}")
+
+      strategy_labels = {
+          "balanced": "Balanced Value Match",
+          "rb_focus": "Target Star RBs",
+          "improve_rbs": "Improve Running Backs",
+          "rb_depth": "Add RB Depth",
+          "wr_focus": "Improve WR Depth",
+          "improve_wrs": "Improve Wide Receivers",
+          "tier_up": "Tier Up / Studs",
+          "win_now": "Win-Now Veteran Push",
+          "pick_hoard": "Draft Pick Accumulation",
+          "qb_focus": "Elite QB Hunter",
+          "te_focus": "Tight End Upgrade",
+          "youth_rebuild": "Youth & Rebuild",
       }
 
-      if available_pool:
-        best_asset = min(
-            available_pool.keys(), key=lambda k: abs(available_pool[k] - diff)
-        )
-        selected_assets[losing_team].append(best_asset)
-        counter_msg = f"💡 Counter-Offer Added: Automatically added {best_asset} ({available_pool[best_asset]:,} pts)."
+      result = {
+          "team_a_items": team_a_items,
+          "team_b_items": team_b_items,
+          "team_a_total": team_a_total,
+          "team_b_total": team_b_total,
+          "message": msg,
+          "balancer_msg": balancer_msg,
+          "stud_msg": stud_msg,
+          "counter_msg": counter_msg,
+          "smart_suggestions": smart_suggestions,
+          "itemized_summary_text": "\n".join(summary_lines),
+      }
+      session["smart_strategy_label"] = strategy_labels.get(
+          smart_strategy, "Balanced"
+      )
 
-        team_a_items = []
-        for item in selected_assets["team_a"]:
-          val = flat_players.get(item, 800)
-          team_a_items.append({"name": item, "val": val})
-        if a_cname and a_custom_num > 0:
-          team_a_items.append({"name": a_cname, "val": a_custom_num})
-
-        team_b_items = []
-        for item in selected_assets["team_b"]:
-          val = flat_players.get(item, 800)
-          team_b_items.append({"name": item, "val": val})
-        if b_cname and b_custom_num > 0:
-          team_b_items.append({"name": b_cname, "val": b_custom_num})
-
-        raw_a = sum(i["val"] for i in team_a_items)
-        raw_b = sum(i["val"] for i in team_b_items)
-
-    total_a = raw_a
-    total_b = raw_b
-
-    diff = total_a - total_b
-    pct_diff = (abs(diff) / max(total_a, total_b, 1)) * 100
-
-    if abs(diff) <= 300 or pct_diff <= 3.0:
-      msg = "⚖️ Fair Trade! Both sides are balanced."
-      balancer_msg = ""
-    elif diff > 0:
-      msg = f"📈 Team A wins trade by {abs(diff):,} pts ({pct_diff:.1f}%)"
-      balancer_msg = f"💡 To make this fair, Team A should add an asset worth around {abs(diff):,} pts."
-    else:
-      msg = f"📉 Team B wins trade by {abs(diff):,} pts ({pct_diff:.1f}%)"
-      balancer_msg = f"💡 To make this fair, Team B should add an asset worth around {abs(diff):,} pts."
-
-    stud_msg = ""
-    max_val_a = max([i["val"] for i in team_a_items], default=0)
-    max_val_b = max([i["val"] for i in team_b_items], default=0)
-    if max_val_a >= 8500 or max_val_b >= 8500:
-      stud_msg = "🔥 Blockbuster trade involving elite tier studs!"
-
-    itemized_summary = []
-    itemized_summary.append(f"=== DYNASTY TRADE EVALUATION ({league_format}) ===")
-    owner_a_label = selected_owner_a if selected_owner_a else "Team A"
-    owner_b_label = selected_owner_b if selected_owner_b else "Team B"
-
-    itemized_summary.append(f"\n{owner_a_label} Gives ({total_a:,} pts):")
-    for i in team_a_items:
-      itemized_summary.append(f"- {i['name']} ({i['val']:,} pts)")
-
-    itemized_summary.append(f"\n{owner_b_label} Gives ({total_b:,} pts):")
-    for i in team_b_items:
-      itemized_summary.append(f"- {i['name']} ({i['val']:,} pts)")
-
-    itemized_summary.append(f"\nVerdict: {msg}")
-    if balancer_msg:
-      itemized_summary.append(balancer_msg)
-
-    strategy_labels = {
-        "balanced": "Balanced Value Match",
-        "rb_focus": "Target Star RBs 🏈",
-        "improve_rbs": "Improve Running Backs 🏃‍♂️",
-        "rb_depth": "Add RB Depth 🔋",
-        "wr_focus": "Improve WR Depth 🎯",
-        "improve_wrs": "Improve Wide Receivers ✨",
-        "tier_up": "Tier Up / Target Studs 📈",
-        "win_now": "Win-Now / Veteran Push 💍",
-        "pick_hoard": "Draft Pick Accumulation 🎫",
-        "qb_focus": "Elite QB Hunter 🚀",
-        "te_focus": "Tight End Upgrade 🛡️",
-        "youth_rebuild": "Youth & Upside / Rebuild 🌱",
-    }
-
-    result = {
-        "team_a_items": team_a_items,
-        "team_b_items": team_b_items,
-        "team_a_total": total_a,
-        "team_b_total": total_b,
-        "message": msg,
-        "balancer_msg": balancer_msg,
-        "counter_msg": counter_msg,
-        "stud_msg": stud_msg,
-        "smart_suggestions": smart_suggestions,
-        "itemized_summary_text": "\n".join(itemized_summary),
-    }
+  smart_strategy_label = session.get(
+      "smart_strategy_label", "Balanced Value Match"
+  )
 
   return render_template_string(
       CALCULATOR_TEMPLATE,
@@ -2219,21 +2227,20 @@ def home():
       player_groups=active_players,
       result=result,
       league_format=league_format,
-      selected_assets=selected_assets,
-      custom_assets=custom_assets,
       sleeper_input=sleeper_input,
-      user_leagues=user_leagues,
       selected_league_id=selected_league_id,
+      user_leagues=user_leagues,
       league_owners=league_owners,
       owner_rosters=owner_rosters,
       selected_owner_a=selected_owner_a,
       selected_owner_b=selected_owner_b,
+      selected_assets=selected_assets,
+      custom_assets=custom_assets,
       pick_modifier=pick_modifier,
       smart_strategy=smart_strategy,
-      smart_strategy_label=strategy_labels.get(smart_strategy, "Balanced"),
+      smart_strategy_label=smart_strategy_label,
       target_player_filter=target_player_filter,
       smart_page=smart_page,
-      sleeper_msg=sleeper_msg,
   )
 
 
@@ -2249,6 +2256,7 @@ def analysis():
   user_leagues = session.get("user_leagues", [])
   owner_rosters = session.get("owner_rosters", {})
   sleeper_msg = ""
+  power_rankings = []
 
   if request.method == "POST":
     action = request.form.get("action")
@@ -2263,26 +2271,36 @@ def analysis():
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
       owner_rosters = session.get("owner_rosters", {})
 
-  power_rankings = []
   if owner_rosters:
-    for owner, roster in owner_rosters.items():
-      qb_val = sum(v for k, v in roster.items() if "(QB)" in k)
-      rb_val = sum(v for k, v in roster.items() if "(RB)" in k)
-      wr_val = sum(v for k, v in roster.items() if "(WR)" in k)
-      te_val = sum(v for k, v in roster.items() if "(TE)" in k)
-      pick_val = sum(
-          v for k, v in roster.items() if "Pick" in k or "Round" in k
-      )
-      total_val = sum(roster.values())
+    is_sf = session.get("league_format", "1QB") == "Superflex"
+    active_players = fetch_live_fantasycalc_values(is_superflex=is_sf)
+    flat_players = {}
+    for pos, p_dict in active_players.items():
+      for name, val in p_dict.items():
+        flat_players[name] = val
 
-      archetype = "Playoff Threat"
-      if total_val > 45000 and qb_val > 12000 and (rb_val > 15000 or wr_val > 20000):
+    for oname, roster_dict in owner_rosters.items():
+      qb_val = sum(v for k, v in roster_dict.items() if "(QB)" in k)
+      rb_val = sum(v for k, v in roster_dict.items() if "(RB)" in k)
+      wr_val = sum(v for k, v in roster_dict.items() if "(WR)" in k)
+      te_val = sum(v for k, v in roster_dict.items() if "(TE)" in k)
+      pick_val = sum(
+          v
+          for k, v in roster_dict.items()
+          if "Pick" in k or "Round" in k
+      )
+      total_val = sum(roster_dict.values())
+
+      archetype = "Contender"
+      if total_val > 55000 and rb_val > 15000:
         archetype = "Contender"
-      elif pick_val > 12000 or total_val < 32000:
+      elif pick_val > 15000 or total_val < 35000:
         archetype = "Rebuilder"
+      else:
+        archetype = "Playoff Threat"
 
       power_rankings.append({
-          "name": owner,
+          "name": oname,
           "total_val": total_val,
           "qb_val": qb_val,
           "rb_val": rb_val,
@@ -2315,10 +2333,18 @@ def league_feed():
   shared_styles = get_shared_styles(t)
   league_id = request.args.get("league_id", session.get("selected_league_id", ""))
   transactions = []
+
   if league_id:
-    tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
+    tx_data = fetch_sleeper_api(
+        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
+    )
     if isinstance(tx_data, list):
-      transactions = tx_data
+      for tx in tx_data:
+        transactions.append({
+            "type": tx.get("type", "Trade").upper(),
+            "week": tx.get("week", 1),
+        })
+
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
@@ -2347,9 +2373,21 @@ def trends():
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
   sample_trends = {
-      "Josh Allen": [{"month": "Jun", "value": 8200}, {"month": "Jul", "value": 8300}, {"month": "Aug", "value": 8400}],
-      "Bijan Robinson": [{"month": "Jun", "value": 8500}, {"month": "Jul", "value": 8700}, {"month": "Aug", "value": 8900}],
-      "Ja'Marr Chase": [{"month": "Jun", "value": 9100}, {"month": "Jul", "value": 9300}, {"month": "Aug", "value": 9500}],
+      "Ja'Marr Chase (WR)": [
+          {"month": "June", "value": 9200},
+          {"month": "July", "value": 9350},
+          {"month": "August", "value": 9500},
+      ],
+      "Bijan Robinson (RB)": [
+          {"month": "June", "value": 8500},
+          {"month": "July", "value": 8700},
+          {"month": "August", "value": 8900},
+      ],
+      "Patrick Mahomes (QB)": [
+          {"month": "June", "value": 8600},
+          {"month": "July", "value": 8550},
+          {"month": "August", "value": 8500},
+      ],
   }
   return render_template_string(
       TRENDS_TEMPLATE,
@@ -2380,74 +2418,79 @@ def draft_analyzer():
     if form_league_id:
       selected_league_id = form_league_id
 
-    if action in ["sync", "select_league", "analyze_draft"] or (
-        selected_league_id and selected_league_id != session.get("selected_league_id")
-    ):
-      sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
+    if action in ["sync", "select_league", "analyze_draft"]:
+      if sleeper_input and not selected_league_id:
+        sleeper_msg = process_sleeper_sync(sleeper_input, "")
+        user_leagues = session.get("user_leagues", [])
+      if selected_league_id:
+        session["selected_league_id"] = selected_league_id
+        
+        drafts = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts")
+        if drafts and isinstance(drafts, list):
+          draft = drafts[0]
+          draft_id = draft.get("draft_id")
+          teams = draft.get("settings", {}).get("teams", 12)
+          picks_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks") or []
+          users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/users") or []
+          rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters") or []
 
-    if selected_league_id:
-      drafts = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts")
-      if drafts and isinstance(drafts, list):
-        draft_id = drafts[0].get("draft_id")
-        picks_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks") or []
-        users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/users") or []
-        rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters") or []
+          user_id_to_name = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data if "user_id" in u}
+          roster_id_to_owner = {}
+          for r in rosters_data:
+            r_id = r.get("roster_id")
+            oid = r.get("owner_id")
+            if r_id and oid in user_id_to_name:
+              roster_id_to_owner[r_id] = user_id_to_name[oid]
 
-        user_id_to_name = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data if "user_id" in u}
-        roster_id_to_owner = {}
-        for r in rosters_data:
-          r_id = r.get("roster_id")
-          oid = r.get("owner_id")
-          if r_id and oid in user_id_to_name:
-            roster_id_to_owner[r_id] = user_id_to_name[oid]
+          is_sf = session.get("league_format", "1QB") == "Superflex"
+          active_players, fc_id_map = get_fantasycalc_player_data(is_superflex=is_sf)
+          player_map = get_sleeper_player_map()
 
-        player_map = get_sleeper_player_map()
-        teams = drafts[0].get("settings", {}).get("teams", 12)
-        team_grades = {}
+          team_grades = {}
+          for p in picks_data:
+            pick_no = p.get("pick_no")
+            roster_id = p.get("roster_id")
+            owner_name = roster_id_to_owner.get(roster_id, f"Team {roster_id}")
+            player_id = str(p.get("player_id", ""))
+            
+            metadata = p.get("metadata", {})
+            p_name = metadata.get("first_name", "") + " " + metadata.get("last_name", "")
+            if not p_name.strip():
+              p_name = player_map.get(player_id, f"Prospect #{pick_no}")
 
-        for p in picks_data:
-          picker_roster_id = p.get("roster_id")
-          owner_name = roster_id_to_owner.get(picker_roster_id, f"Team {picker_roster_id}")
-          round_no = p.get("round", 1)
-          pick_no = p.get("pick_no", 1)
-          overall = p.get("picked_by", pick_no)
-          player_id = p.get("player_id")
-          metadata = p.get("metadata", {})
-          p_name = metadata.get("first_name", "") + " " + metadata.get("last_name", "")
-          if not p_name.strip():
-            p_name = player_map.get(str(player_id), f"Prospect #{player_id}")
+            val = 3000
+            if player_id in fc_id_map:
+              val = fc_id_map[player_id]["val"]
+            elif "Pick" in p_name:
+              val = 4000
 
-          expected_val = max(5000 - (pick_no * 100), 800)
-          actual_val = int(expected_val * 1.05)
+            round_num = ((pick_no - 1) // teams) + 1
+            expected_val = max(1000, 7000 - (pick_no * 120))
 
-          if owner_name not in team_grades:
-            team_grades[owner_name] = {"total_value": 0, "picks_count": 0, "picks": [], "grade": "B"}
+            if owner_name not in team_grades:
+              team_grades[owner_name] = {"total_value": 0, "picks_count": 0, "picks": [], "grade": "B"}
 
-          team_grades[owner_name]["total_value"] += actual_val
-          team_grades[owner_name]["picks_count"] += 1
-          team_grades[owner_name]["picks"].append({
-              "round": round_no,
-              "pick_no": pick_no,
-              "overall": overall,
-              "player_name": p_name,
-              "value": actual_val,
-              "expected_value": expected_val,
-          })
+            team_grades[owner_name]["total_value"] += val
+            team_grades[owner_name]["picks_count"] += 1
+            team_grades[owner_name]["picks"].append({
+                "round": round_num,
+                "pick_no": ((pick_no - 1) % teams) + 1,
+                "overall": pick_no,
+                "player_name": p_name,
+                "value": val,
+                "expected_value": expected_val
+            })
 
-        for owner, data in team_grades.items():
-          avg_val = data["total_value"] / max(data["picks_count"], 1)
-          if avg_val > 4500:
-            data["grade"] = "S"
-          elif avg_val > 3800:
-            data["grade"] = "A"
-          elif avg_val > 3000:
-            data["grade"] = "B"
-          elif avg_val > 2200:
-            data["grade"] = "C"
-          else:
-            data["grade"] = "D"
+          for name, data in team_grades.items():
+            avg_val = data["total_value"] / max(1, data["picks_count"])
+            if avg_val > 6500: data["grade"] = "S"
+            elif avg_val > 5200: data["grade"] = "A"
+            elif avg_val > 4000: data["grade"] = "B"
+            elif avg_val > 3000: data["grade"] = "C"
+            else: data["grade"] = "D"
 
-        draft_results = {"team_grades": team_grades}
+          draft_results = {"team_grades": team_grades}
+          sleeper_msg = "Draft board successfully analyzed!"
 
   return render_template_string(
       DRAFT_ANALYZER_TEMPLATE,
