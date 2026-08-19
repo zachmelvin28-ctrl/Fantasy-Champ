@@ -252,7 +252,7 @@ DEFAULT_PLAYERS = {
         "Malik Nabers (WR)": 8100,
         "Garrett Wilson (WR)": 7800,
         "AJ Brown (WR)": 7700,
-        "Puka Nacua (WR)": 7600,
+        "Puka Nacua (WR)": 9500,
         "Nico Collins (WR)": 7400,
         "Drake London (WR)": 7300,
         "Tyreek Hill (WR)": 7100,
@@ -822,7 +822,6 @@ ROOKIE_DRAFT_TEMPLATE = """
 
     <div id="syncStatus"></div>
 
-    <!-- SEPARATE STARTUP, REGULAR, AND ROOKIE DRAFTS + 1QB/SF PPR FORMAT -->
     <div class="draft-mode-bar">
         <div>
             <small style="display:block; color:{{ t['subtext'] }}; margin-bottom:4px;">Draft Type:</small>
@@ -847,7 +846,6 @@ ROOKIE_DRAFT_TEMPLATE = """
     </div>
 
     <div class="draft-container">
-        <!-- Available Prospects / Players Panel -->
         <div class="panel">
             <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.05em;" id="poolTitle">Available Prospects</h3>
             <div class="filters">
@@ -866,7 +864,6 @@ ROOKIE_DRAFT_TEMPLATE = """
             <div class="player-list" id="playerList"></div>
         </div>
 
-        <!-- Draft Board Grid Panel -->
         <div class="panel">
             <h3 style="margin-top:0; color:{{ t['primary'] }}; font-size: 1.05em;" id="boardTitle">Live Draft Board (Rounds 1+)</h3>
             <div class="draft-grid" id="draftGrid"></div>
@@ -1650,7 +1647,6 @@ def api_all_players():
         continue
       val = int(item.get("value", 800))
       
-      # If regular draft, slightly adjust veteran weighting
       if draft_type == "regular" and val > 7000:
         val = int(val * 0.95)
 
@@ -1947,7 +1943,6 @@ def home():
 
     selected_assets["team_a"] = request.form.getlist("team_a")
     selected_assets["team_b"] = request.form.getlist("team_b")
-    all_selected = set(selected_assets["team_a"] + selected_assets["team_b"])
 
     a_cname = request.form.get("team_a_custom_name", "").strip()
     a_cval = request.form.get("team_a_custom_val", "")
@@ -1967,257 +1962,179 @@ def home():
     if action in ["smart_suggestion", "smart_more"]:
       if not selected_owner_a:
         counter_msg = (
-            "⚠️ Please select your team (Team A) from the dropdown above to"
-            " generate league-wide smart trades."
+            "⚠️ Please select your team (Team A) from the dropdown above to use the Smart Trade Finder."
         )
       else:
-        roster_a = owner_rosters.get(selected_owner_a, {})
-        if not roster_a:
-          counter_msg = (
-              "⚠️ Roster data not found for your team. Try re-fetching your"
-              " Sleeper league."
-          )
-        else:
-          all_candidates = []
-          for other_owner, roster_b in owner_rosters.items():
-            if other_owner == selected_owner_a:
+        user_roster = owner_rosters.get(selected_owner_a, {})
+        candidates = []
+        for partner_name, partner_roster in owner_rosters.items():
+          if partner_name == selected_owner_a:
+            continue
+          for p_name, p_val in partner_roster.items():
+            if target_player_filter and target_player_filter not in p_name.lower():
               continue
+            candidates.append({
+                "partner": partner_name,
+                "gets_name": p_name,
+                "gets_val": p_val,
+            })
 
-            items_a = list(roster_a.items())
-            items_b = list(roster_b.items())
+        if smart_strategy == "rb_focus":
+          candidates = [c for c in candidates if "RB" in c["gets_name"] or "Running Back" in c["gets_name"]]
+        elif smart_strategy == "wr_focus":
+          candidates = [c for c in candidates if "WR" in c["gets_name"] or "Wide Receiver" in c["gets_name"]]
+        elif smart_strategy == "qb_focus":
+          candidates = [c for c in candidates if "QB" in c["gets_name"] or "Quarterback" in c["gets_name"]]
+        elif smart_strategy == "te_focus":
+          candidates = [c for c in candidates if "TE" in c["gets_name"] or "Tight End" in c["gets_name"]]
+        elif smart_strategy == "pick_hoard":
+          candidates = [c for c in candidates if "Pick" in c["gets_name"] or "Round" in c["gets_name"]]
 
-            packages_a = []
-            for r_size in range(1, 3):
-              for combo in combinations(items_a, r_size):
-                p_names = " + ".join([x[0] for x in combo])
-                p_val = sum(x[1] for x in combo)
-                packages_a.append((p_names, p_val, combo))
+        for cand in candidates[:30]:
+          partner = cand["partner"]
+          gets_name = cand["gets_name"]
+          gets_val = cand["gets_val"]
 
-            packages_b = []
-            for r_size in range(1, 3):
-              for combo in combinations(items_b, r_size):
-                p_names = " + ".join([x[0] for x in combo])
-                p_val = sum(x[1] for x in combo)
-                packages_b.append((p_names, p_val, combo))
+          for u_name, u_val in user_roster.items():
+            if abs(u_val - gets_val) <= 1500:
+              diff_val = u_val - gets_val
+              smart_suggestions.append({
+                  "partner": partner,
+                  "gives": u_name,
+                  "gives_val": u_val,
+                  "gets": gets_name,
+                  "gets_val": gets_val,
+                  "diff": f"{diff_val:+d}"
+              })
+              break
 
-            for gives_str, gives_val, gives_combo in packages_a:
-              for gets_str, gets_val, gets_combo in packages_b:
-                diff = abs(gets_val - gives_val)
-                if diff > 2000:
-                  continue
-
-                is_gives_all_picks = all(
-                    "Pick" in x[0] or "Round" in x[0] for x in gives_combo
-                )
-                is_gets_all_picks = all(
-                    "Pick" in x[0] or "Round" in x[0] for x in gets_combo
-                )
-                if is_gives_all_picks and is_gets_all_picks:
-                  continue
-
-                if smart_strategy == "balanced" and diff > 1000:
-                  continue
-                elif (
-                    smart_strategy == "rb_focus"
-                    and "(RB)" not in gets_str
-                    and gets_val < 5000
-                ):
-                  continue
-                elif (
-                    smart_strategy == "improve_rbs"
-                    and "(RB)" not in gets_str
-                    and gets_val <= gives_val
-                ):
-                  continue
-                elif (
-                    smart_strategy == "rb_depth" and "(RB)" not in gets_str
-                ):
-                  continue
-                elif (
-                    smart_strategy == "wr_focus" and "(WR)" not in gets_str
-                ):
-                  continue
-                elif (
-                    smart_strategy == "improve_wrs"
-                    and "(WR)" not in gets_str
-                    and gets_val <= gives_val
-                ):
-                  continue
-                elif (
-                    smart_strategy == "qb_focus" and "(QB)" not in gets_str
-                ):
-                  continue
-                elif (
-                    smart_strategy == "te_focus" and "(TE)" not in gets_str
-                ):
-                  continue
-                elif smart_strategy == "tier_up" and gets_val <= gives_val:
-                  continue
-                elif (
-                    smart_strategy == "win_now"
-                    and gets_val < 6000
-                    and "Pick" in gets_str
-                ):
-                  continue
-                elif (
-                    smart_strategy == "youth_rebuild"
-                    and "Pick" not in gets_str
-                    and gets_val > 7500
-                ):
-                  continue
-                elif (
-                    smart_strategy == "pick_hoard" and "Pick" not in gets_str
-                ):
-                  continue
-
-                if (
-                    target_player_filter
-                    and target_player_filter not in gets_str.lower()
-                    and target_player_filter not in gives_str.lower()
-                ):
-                  continue
-
-                all_candidates.append({
-                    "partner": other_owner,
-                    "gives": gives_str,
-                    "gives_val": gives_val,
-                    "gets": gets_str,
-                    "gets_val": gets_val,
-                    "diff": diff,
-                })
-
-          all_candidates.sort(key=lambda x: x["diff"])
-
-          filtered_candidates = []
-          partner_counts = {}
-          for cand in all_candidates:
-            partner = cand["partner"]
-            if partner_counts.get(partner, 0) >= 1:
-              continue
-            partner_counts[partner] = partner_counts.get(partner, 0) + 1
-            filtered_candidates.append(cand)
-
-          page_size = 3
-          start_idx = (smart_page * page_size) % max(
-              1, len(filtered_candidates)
-          )
+        page_size = 3
+        total_suggs = len(smart_suggestions)
+        if total_suggs > 0:
+          start_idx = (smart_page * page_size) % total_suggs
           end_idx = start_idx + page_size
-          smart_suggestions = filtered_candidates[start_idx:end_idx]
-          if not smart_suggestions and filtered_candidates:
-            smart_page = 0
-            session["smart_page"] = 0
-            smart_suggestions = filtered_candidates[0:page_size]
+          current_page_suggs = smart_suggestions[start_idx:end_idx]
+          if len(current_page_suggs) < page_size and total_suggs >= page_size:
+            current_page_suggs += smart_suggestions[:page_size - len(current_page_suggs)]
+          smart_suggestions = current_page_suggs
+        else:
+          smart_suggestions = [{
+              "partner": "League-wide",
+              "gives": "Various Assets",
+              "gives_val": 0,
+              "gets": target_player_filter.title() if target_player_filter else "Target Player",
+              "gets_val": 0,
+              "diff": "0"
+          }]
 
     team_a_items = []
+    team_b_items = []
+
     for name in selected_assets["team_a"]:
       val = flat_players.get(name, 800)
       team_a_items.append({"name": name, "val": val})
+
     if a_cname:
       team_a_items.append({"name": a_cname, "val": a_custom_num})
+      flat_players[a_cname] = a_custom_num
 
-    team_b_items = []
     for name in selected_assets["team_b"]:
       val = flat_players.get(name, 800)
       team_b_items.append({"name": name, "val": val})
+
     if b_cname:
       team_b_items.append({"name": b_cname, "val": b_custom_num})
+      flat_players[b_cname] = b_custom_num
 
-    team_a_total = sum(item["val"] for item in team_a_items)
-    team_b_total = sum(item["val"] for item in team_b_items)
+    team_a_total = sum(i["val"] for i in team_a_items)
+    team_b_total = sum(i["val"] for i in team_b_items)
     diff = team_b_total - team_a_total
 
-    if not team_a_items and not team_b_items:
-      result = None
-    else:
-      msg = ""
-      if abs(diff) <= 300:
-        msg = "⚖️ Extremely Fair Trade (Even Value)"
-      elif diff > 300:
-        overpay_side = selected_owner_a or "Team A"
-        msg = f"📈 {overpay_side} wins by {abs(diff):,} points (Great Value)"
+    balancer_msg = ""
+    if action == "suggest_trade":
+      if abs(diff) < 200:
+        balancer_msg = "✅ This trade is already extremely close and fair in value!"
+      elif diff > 0:
+        needed = diff
+        closest_item = None
+        min_diff = 999999
+        source_roster = owner_rosters.get(selected_owner_a, flat_players)
+        for pname, pval in source_roster.items():
+          if pname not in selected_assets["team_a"]:
+            d = abs(pval - needed)
+            if d < min_diff:
+              min_diff = d
+              closest_item = (pname, pval)
+        if closest_item:
+          balancer_msg = f"💡 Counter-Offer Suggestion: Have {selected_owner_a or 'Team A'} add **{closest_item[0]}** ({closest_item[1]:,} pts) to balance the trade (Diff: {diff:+d} pts)."
+        else:
+          balancer_msg = f"💡 Value Difference: {selected_owner_a or 'Team A'} is short by {diff:,} points."
       else:
-        overpay_side = selected_owner_b or "Team B"
-        msg = f"📉 {overpay_side} wins by {abs(diff):,} points (Great Value)"
+        needed = abs(diff)
+        closest_item = None
+        min_diff = 999999
+        source_roster = owner_rosters.get(selected_owner_b, flat_players)
+        for pname, pval in source_roster.items():
+          if pname not in selected_assets["team_b"]:
+            d = abs(pval - needed)
+            if d < min_diff:
+              min_diff = d
+              closest_item = (pname, pval)
+        if closest_item:
+          balancer_msg = f"💡 Counter-Offer Suggestion: Have {selected_owner_b or 'Team B'} add **{closest_item[0]}** ({closest_item[1]:,} pts) to balance the trade (Diff: {diff:+d} pts)."
+        else:
+          balancer_msg = f"💡 Value Difference: {selected_owner_b or 'Team B'} is short by {abs(diff):,} points."
 
-      balancer_msg = ""
-      if action == "suggest_trade" and abs(diff) > 200:
-        needed_val = abs(diff)
-        closest_asset = None
-        closest_diff = 999999
-        search_pool = (
-            owner_rosters.get(selected_owner_b, {})
-            if diff < 0
-            else owner_rosters.get(selected_owner_a, {})
-        )
-        if not search_pool:
-          search_pool = flat_players
+    message = ""
+    if action == "analyze":
+      if abs(diff) <= 300:
+        message = "⚖️ Extremely Fair Trade (Even Value)"
+      elif diff > 300:
+        message = f"🚀 Win for {selected_owner_b or 'Team B'} (+{diff:,} pts advantage)"
+      else:
+        message = f"🔥 Win for {selected_owner_a or 'Team A'} (+{abs(diff):,} pts advantage)"
 
-        for name, val in search_pool.items():
-          if name not in all_selected:
-            d = abs(val - needed_val)
-            if d < closest_diff:
-              closest_diff = d
-              closest_asset = (name, val)
+    stud_msg = ""
+    if team_a_total > 15000 or team_b_total > 15000:
+      stud_msg = "⭐ Blockbuster Trade Alert: High-value tier assets involved!"
 
-        if closest_asset:
-          side_str = (
-              selected_owner_b if diff < 0 else (selected_owner_a or "Team A")
-          )
-          balancer_msg = f"💡 To balance this trade, ask {side_str} to add/remove <b>{closest_asset[0]}</b> (~{closest_asset[1]:,} pts)."
+    itemized_summary_text = f"Dynasty Trade Breakdown:\n{selected_owner_a or 'Team A'} Gives:\n"
+    for item in team_a_items:
+      itemized_summary_text += f"- {item.name} ({item.val:,} pts)\n"
+    itemized_summary_text += f"Total: {team_a_total:,} pts\n\n{selected_owner_b or 'Team B'} Gives:\n"
+    for item in team_b_items:
+      itemized_summary_text += f"- {item.name} ({item.val:,} pts)\n"
+    itemized_summary_text += f"Total: {team_b_total:,} pts\nNet Difference: {diff:+d} pts"
 
-      stud_msg = ""
-      for item in team_a_items + team_b_items:
-        if item["val"] >= 8000:
-          stud_msg = f"⭐ Mega-Stud Alert: '{item['name']}' is a premier elite cornerstone asset!"
-          break
+    strategy_labels = {
+        "balanced": "Balanced Value Match",
+        "rb_focus": "Target Star RBs",
+        "improve_rbs": "Improve Running Backs",
+        "rb_depth": "Add RB Depth",
+        "wr_focus": "Improve WR Depth",
+        "improve_wrs": "Improve Wide Receivers",
+        "tier_up": "Tier Up / Target Studs",
+        "win_now": "Win-Now / Veteran Push",
+        "pick_hoard": "Draft Pick Accumulation",
+        "qb_focus": "Elite QB Hunter",
+        "te_focus": "Tight End Upgrade",
+        "youth_rebuild": "Youth & Upside / Rebuild"
+    }
 
-      summary_lines = [
-          f"Dynasty Trade Breakdown ({league_format}):",
-          f"--- {selected_owner_a or 'Team A'} Gives ({team_a_total:,} pts) ---",
-      ]
-      for item in team_a_items:
-        summary_lines.append(f"• {item.name} ({item.val:,} pts)")
-      summary_lines.append(
-          f"\n--- {selected_owner_b or 'Team B'} Gives ({team_b_total:,} pts) ---"
-      )
-      for item in team_b_items:
-        summary_lines.append(f"• {item.name} ({item.val:,} pts)")
-      summary_lines.append(f"\nVerdict: {msg}")
+    result = {
+        "team_a_items": team_a_items,
+        "team_b_items": team_b_items,
+        "team_a_total": team_a_total,
+        "team_b_total": team_b_total,
+        "message": message,
+        "balancer_msg": balancer_msg,
+        "stud_msg": stud_msg,
+        "counter_msg": counter_msg,
+        "smart_suggestions": smart_suggestions,
+        "itemized_summary_text": itemized_summary_text
+    }
 
-      strategy_labels = {
-          "balanced": "Balanced Value Match",
-          "rb_focus": "Target Star RBs",
-          "improve_rbs": "Improve Running Backs",
-          "rb_depth": "Add RB Depth",
-          "wr_focus": "Improve WR Depth",
-          "improve_wrs": "Improve Wide Receivers",
-          "tier_up": "Tier Up / Studs",
-          "win_now": "Win-Now Veteran Push",
-          "pick_hoard": "Draft Pick Accumulation",
-          "qb_focus": "Elite QB Hunter",
-          "te_focus": "Tight End Upgrade",
-          "youth_rebuild": "Youth & Rebuild",
-      }
-
-      result = {
-          "team_a_items": team_a_items,
-          "team_b_items": team_b_items,
-          "team_a_total": team_a_total,
-          "team_b_total": team_b_total,
-          "message": msg,
-          "balancer_msg": balancer_msg,
-          "stud_msg": stud_msg,
-          "counter_msg": counter_msg,
-          "smart_suggestions": smart_suggestions,
-          "itemized_summary_text": "\n".join(summary_lines),
-      }
-      session["smart_strategy_label"] = strategy_labels.get(
-          smart_strategy, "Balanced"
-      )
-
-  smart_strategy_label = session.get(
-      "smart_strategy_label", "Balanced Value Match"
-  )
+  smart_strategy_label = strategy_labels.get(smart_strategy, "Balanced") if 'strategy_labels' in locals() else "Balanced"
 
   return render_template_string(
       CALCULATOR_TEMPLATE,
@@ -2225,7 +2142,6 @@ def home():
       theme_form=theme_form,
       shared_styles=shared_styles,
       player_groups=active_players,
-      result=result,
       league_format=league_format,
       sleeper_input=sleeper_input,
       selected_league_id=selected_league_id,
@@ -2239,8 +2155,10 @@ def home():
       pick_modifier=pick_modifier,
       smart_strategy=smart_strategy,
       smart_strategy_label=smart_strategy_label,
-      target_player_filter=target_player_filter,
       smart_page=smart_page,
+      target_player_filter=target_player_filter,
+      sleeper_msg=sleeper_msg,
+      result=result,
   )
 
 
@@ -2272,32 +2190,21 @@ def analysis():
       owner_rosters = session.get("owner_rosters", {})
 
   if owner_rosters:
-    is_sf = session.get("league_format", "1QB") == "Superflex"
-    active_players = fetch_live_fantasycalc_values(is_superflex=is_sf)
-    flat_players = {}
-    for pos, p_dict in active_players.items():
-      for name, val in p_dict.items():
-        flat_players[name] = val
-
-    for oname, roster_dict in owner_rosters.items():
-      qb_val = sum(v for k, v in roster_dict.items() if "(QB)" in k)
-      rb_val = sum(v for k, v in roster_dict.items() if "(RB)" in k)
-      wr_val = sum(v for k, v in roster_dict.items() if "(WR)" in k)
-      te_val = sum(v for k, v in roster_dict.items() if "(TE)" in k)
-      pick_val = sum(
-          v
-          for k, v in roster_dict.items()
-          if "Pick" in k or "Round" in k
-      )
-      total_val = sum(roster_dict.values())
+    for oname, roster in owner_rosters.items():
+      qb_val = sum(v for k, v in roster.items() if "QB" in k or "Quarterback" in k)
+      rb_val = sum(v for k, v in roster.items() if "RB" in k or "Running Back" in k)
+      wr_val = sum(v for k, v in roster.items() if "WR" in k or "Wide Receiver" in k)
+      te_val = sum(v for k, v in roster.items() if "TE" in k or "Tight End" in k)
+      pick_val = sum(v for k, v in roster.items() if "Pick" in k or "Round" in k)
+      total_val = qb_val + rb_val + wr_val + te_val + pick_val
 
       archetype = "Contender"
-      if total_val > 55000 and rb_val > 15000:
+      if total_val > 65000:
         archetype = "Contender"
-      elif pick_val > 15000 or total_val < 35000:
-        archetype = "Rebuilder"
-      else:
+      elif total_val > 50000:
         archetype = "Playoff Threat"
+      else:
+        archetype = "Rebuilder"
 
       power_rankings.append({
           "name": oname,
@@ -2307,9 +2214,8 @@ def analysis():
           "wr_val": wr_val,
           "te_val": te_val,
           "pick_val": pick_val,
-          "archetype": archetype,
+          "archetype": archetype
       })
-
     power_rankings.sort(key=lambda x: x["total_val"], reverse=True)
 
   return render_template_string(
@@ -2333,25 +2239,21 @@ def league_feed():
   shared_styles = get_shared_styles(t)
   league_id = request.args.get("league_id", session.get("selected_league_id", ""))
   transactions = []
-
   if league_id:
-    tx_data = fetch_sleeper_api(
-        f"https://api.sleeper.app/v1/league/{league_id}/transactions/1"
-    )
+    tx_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/transactions/1")
     if isinstance(tx_data, list):
       for tx in tx_data:
         transactions.append({
-            "type": tx.get("type", "Trade").upper(),
-            "week": tx.get("week", 1),
+            "type": tx.get("type", "Trade").title(),
+            "week": tx.get("week", 1)
         })
-
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
       league_id=league_id,
-      transactions=transactions,
+      transactions=transactions
   )
 
 
@@ -2362,7 +2264,10 @@ def hall_of_fame():
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
   return render_template_string(
-      HOF_TEMPLATE, t=t, theme_form=theme_form, shared_styles=shared_styles
+      HOF_TEMPLATE,
+      t=t,
+      theme_form=theme_form,
+      shared_styles=shared_styles
   )
 
 
@@ -2373,28 +2278,16 @@ def trends():
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
   sample_trends = {
-      "Ja'Marr Chase (WR)": [
-          {"month": "June", "value": 9200},
-          {"month": "July", "value": 9350},
-          {"month": "August", "value": 9500},
-      ],
-      "Bijan Robinson (RB)": [
-          {"month": "June", "value": 8500},
-          {"month": "July", "value": 8700},
-          {"month": "August", "value": 8900},
-      ],
-      "Patrick Mahomes (QB)": [
-          {"month": "June", "value": 8600},
-          {"month": "July", "value": 8550},
-          {"month": "August", "value": 8500},
-      ],
+      "Ja'Marr Chase (WR)": [{"value": 9000}, {"value": 9200}, {"value": 9500}],
+      "Bijan Robinson (RB)": [{"value": 8500}, {"value": 8700}, {"value": 8900}],
+      "Brock Bowers (TE)": [{"value": 7200}, {"value": 7500}, {"value": 7800}]
   }
   return render_template_string(
       TRENDS_TEMPLATE,
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
-      trends=json.dumps(sample_trends),
+      trends=json.dumps(sample_trends)
   )
 
 
@@ -2418,22 +2311,17 @@ def draft_analyzer():
     if form_league_id:
       selected_league_id = form_league_id
 
-    if action in ["sync", "select_league", "analyze_draft"]:
-      if sleeper_input and not selected_league_id:
-        sleeper_msg = process_sleeper_sync(sleeper_input, "")
-        user_leagues = session.get("user_leagues", [])
-      if selected_league_id:
-        session["selected_league_id"] = selected_league_id
-        
+    if action in ["sync", "analyze_draft", "select_league"]:
+      if action == "sync":
+        sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
+      elif action in ["analyze_draft", "select_league"] and selected_league_id:
         drafts = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/drafts")
         if drafts and isinstance(drafts, list):
-          draft = drafts[0]
-          draft_id = draft.get("draft_id")
-          teams = draft.get("settings", {}).get("teams", 12)
+          draft_id = drafts[0].get("draft_id")
           picks_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks") or []
           users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/users") or []
           rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters") or []
-
+          
           user_id_to_name = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data if "user_id" in u}
           roster_id_to_owner = {}
           for r in rosters_data:
@@ -2442,55 +2330,52 @@ def draft_analyzer():
             if r_id and oid in user_id_to_name:
               roster_id_to_owner[r_id] = user_id_to_name[oid]
 
-          is_sf = session.get("league_format", "1QB") == "Superflex"
-          active_players, fc_id_map = get_fantasycalc_player_data(is_superflex=is_sf)
           player_map = get_sleeper_player_map()
-
           team_grades = {}
+
           for p in picks_data:
             pick_no = p.get("pick_no")
+            round_no = p.get("round")
             roster_id = p.get("roster_id")
             owner_name = roster_id_to_owner.get(roster_id, f"Team {roster_id}")
-            player_id = str(p.get("player_id", ""))
             
             metadata = p.get("metadata", {})
-            p_name = metadata.get("first_name", "") + " " + metadata.get("last_name", "")
-            if not p_name.strip():
-              p_name = player_map.get(player_id, f"Prospect #{pick_no}")
+            player_name = metadata.get("first_name", "") + " " + metadata.get("last_name", "")
+            player_id = p.get("player_id")
+            if not player_name.strip():
+              player_name = player_map.get(str(player_id), f"Player {player_id}")
 
-            val = 3000
-            if player_id in fc_id_map:
-              val = fc_id_map[player_id]["val"]
-            elif "Pick" in p_name:
-              val = 4000
-
-            round_num = ((pick_no - 1) // teams) + 1
-            expected_val = max(1000, 7000 - (pick_no * 120))
+            val = 3000 - (pick_no * 30)
+            if val < 500:
+              val = 500
+            expected_val = val + 200
 
             if owner_name not in team_grades:
-              team_grades[owner_name] = {"total_value": 0, "picks_count": 0, "picks": [], "grade": "B"}
+              team_grades[owner_name] = {"picks": [], "total_value": 0, "picks_count": 0, "grade": "B"}
 
-            team_grades[owner_name]["total_value"] += val
-            team_grades[owner_name]["picks_count"] += 1
             team_grades[owner_name]["picks"].append({
-                "round": round_num,
-                "pick_no": ((pick_no - 1) % teams) + 1,
+                "round": round_no,
+                "pick_no": pick_no % 12 or 12,
                 "overall": pick_no,
-                "player_name": p_name,
+                "player_name": player_name,
                 "value": val,
                 "expected_value": expected_val
             })
+            team_grades[owner_name]["total_value"] += val
+            team_grades[owner_name]["picks_count"] += 1
 
           for name, data in team_grades.items():
-            avg_val = data["total_value"] / max(1, data["picks_count"])
-            if avg_val > 6500: data["grade"] = "S"
-            elif avg_val > 5200: data["grade"] = "A"
-            elif avg_val > 4000: data["grade"] = "B"
-            elif avg_val > 3000: data["grade"] = "C"
+            avg_val = data["total_value"] / max(data["picks_count"], 1)
+            if avg_val > 4000: data["grade"] = "S"
+            elif avg_val > 3000: data["grade"] = "A"
+            elif avg_val > 2000: data["grade"] = "B"
+            elif avg_val > 1000: data["grade"] = "C"
             else: data["grade"] = "D"
 
           draft_results = {"team_grades": team_grades}
           sleeper_msg = "Draft board successfully analyzed!"
+        else:
+          sleeper_msg = "No draft found for this league."
 
   return render_template_string(
       DRAFT_ANALYZER_TEMPLATE,
@@ -2501,9 +2386,9 @@ def draft_analyzer():
       selected_league_id=selected_league_id,
       user_leagues=user_leagues,
       sleeper_msg=sleeper_msg,
-      draft_results=draft_results,
+      draft_results=draft_results
   )
 
 
 if __name__ == "__main__":
-  app.run(debug=True, port=5000)
+  app.run(host="0.0.0.0", port=5000, debug=True)
