@@ -753,6 +753,7 @@ ANALYSIS_TEMPLATE = """
 </html>
 """
 
+# FIXED ROOKIE_DRAFT_TEMPLATE (CSS blocks use single braces { } instead of {{ }})
 ROOKIE_DRAFT_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -761,23 +762,23 @@ ROOKIE_DRAFT_TEMPLATE = """
     <title>Live Draft Board</title>
     <style>
         {{ shared_styles }}
-        .draft-container {{ display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }}
-        @media (max-width: 768px) {{ .draft-container {{ grid-template-columns: 1fr; }} }}
-        .panel {{ background: {{ t['panel'] }}; padding: 12px; border-radius: 8px; border: 1px solid {{ t['border'] }}; }}
-        .filters {{ display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }}
-        .filter-btn {{ background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; }}
-        .filter-btn.active {{ background: {{ t['primary'] }}; color: #fff; }}
-        .player-list {{ max-height: 420px; overflow-y: auto; -webkit-overflow-scrolling: touch; }}
-        .player-card {{ background: {{ t['card_bg'] }}; padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; gap: 8px; }}
-        .player-card:hover {{ border-color: {{ t['primary'] }}; }}
-        .draft-grid {{ display: flex; flex-direction: column; gap: 8px; max-height: 450px; overflow-y: auto; -webkit-overflow-scrolling: touch; }}
-        .pick-slot {{ background: {{ t['card_bg'] }}; padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid {{ t['primary'] }}; border: 1px solid {{ t['border'] }}; font-size: 0.9em; gap: 8px; }}
-        button.draft-btn {{ background: {{ t['primary'] }}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; width: auto; font-size: 0.85em; margin-top: 0; }}
-        button.draft-btn:hover {{ background: {{ t['primary_hover'] }}; }}
-        .sync-badge {{ background: {{ t['primary'] }}; color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; font-weight: bold; }}
-        .live-controls {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.9em; flex-wrap: wrap; gap: 8px; }}
-        .draft-mode-bar {{ display: flex; gap: 12px; margin-bottom: 12px; align-items: center; background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; border: 1px solid {{ t['border'] }}; flex-wrap: wrap; font-size: 0.9em; }}
-        .draft-mode-bar label {{ cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 4px; }}
+        .draft-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }
+        @media (max-width: 768px) { .draft-container { grid-template-columns: 1fr; } }
+        .panel { background: {{ t['panel'] }}; padding: 12px; border-radius: 8px; border: 1px solid {{ t['border'] }}; }
+        .filters { display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+        .filter-btn { background: {{ t['input_bg'] }}; color: {{ t['text'] }}; border: 1px solid {{ t['border'] }}; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
+        .filter-btn.active { background: {{ t['primary'] }}; color: #fff; }
+        .player-list { max-height: 420px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .player-card { background: {{ t['card_bg'] }}; padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid {{ t['border'] }}; gap: 8px; }
+        .player-card:hover { border-color: {{ t['primary'] }}; }
+        .draft-grid { display: flex; flex-direction: column; gap: 8px; max-height: 450px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .pick-slot { background: {{ t['card_bg'] }}; padding: 10px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid {{ t['primary'] }}; border: 1px solid {{ t['border'] }}; font-size: 0.9em; gap: 8px; }
+        button.draft-btn { background: {{ t['primary'] }}; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; width: auto; font-size: 0.85em; margin-top: 0; }
+        button.draft-btn:hover { background: {{ t['primary_hover'] }}; }
+        .sync-badge { background: {{ t['primary'] }}; color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.8em; margin-bottom: 10px; display: inline-block; font-weight: bold; }
+        .live-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.9em; flex-wrap: wrap; gap: 8px; }
+        .draft-mode-bar { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; background: {{ t['card_bg'] }}; padding: 10px; border-radius: 6px; border: 1px solid {{ t['border'] }}; flex-wrap: wrap; font-size: 0.9em; }
+        .draft-mode-bar label { cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 4px; }
     </style>
 </head>
 <body>
@@ -1785,7 +1786,7 @@ def index():
 
 
 # ==========================================
-# NAVIGATION ROUTE HANDLERS
+# NAVIGATION & API ROUTE HANDLERS
 # ==========================================
 
 @app.route("/rookie-draft", methods=["GET", "POST"])
@@ -1886,13 +1887,12 @@ def analysis():
   )
 
 
-@app.route("/league-feed")
+@app.route("/league-feed", methods=["GET"])
 def league_feed():
   theme_key, t = get_current_theme_data()
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-
   league_id = request.args.get("league_id", session.get("selected_league_id", ""))
   transactions = []
   if league_id:
@@ -1900,10 +1900,9 @@ def league_feed():
     if isinstance(tx_data, list):
       for tx in tx_data:
         transactions.append({
-            "type": tx.get("type", "Transaction").title(),
+            "type": tx.get("type", "Transaction"),
             "week": tx.get("week", 1)
         })
-
   return render_template_string(
       LEAGUE_FEED_TEMPLATE,
       t=t,
@@ -1934,36 +1933,18 @@ def trends():
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-
   sample_trends = {
-      "Ja'Marr Chase (WR)": [
-          {"month": "June", "value": 9200},
-          {"month": "July", "value": 9350},
-          {"month": "August", "value": 9500},
-      ],
-      "Justin Jefferson (WR)": [
-          {"month": "June", "value": 9300},
-          {"month": "July", "value": 9350},
-          {"month": "August", "value": 9400},
-      ],
-      "Bijan Robinson (RB)": [
-          {"month": "June", "value": 8500},
-          {"month": "July", "value": 8700},
-          {"month": "August", "value": 8900},
-      ],
-      "Brock Bowers (TE)": [
-          {"month": "June", "value": 7200},
-          {"month": "July", "value": 7500},
-          {"month": "August", "value": 7800},
-      ],
+      "Josh Allen (QB)": [{"value": 8200}, {"value": 8300}, {"value": 8400}],
+      "Bijan Robinson (RB)": [{"value": 8500}, {"value": 8700}, {"value": 8900}],
+      "Ja'Marr Chase (WR)": [{"value": 9100}, {"value": 9300}, {"value": 9500}],
+      "Brock Bowers (TE)": [{"value": 7200}, {"value": 7500}, {"value": 7800}]
   }
-
   return render_template_string(
       TRENDS_TEMPLATE,
       t=t,
       theme_form=theme_form,
       shared_styles=shared_styles,
-      trends=json.dumps(sample_trends),
+      trends=json.dumps(sample_trends)
   )
 
 
@@ -1973,7 +1954,6 @@ def draft_analyzer():
   current_team = session.get("favorite_team", "")
   theme_form = render_theme_form(theme_key, current_team)
   shared_styles = get_shared_styles(t)
-
   sleeper_input = session.get("sleeper_input", "")
   selected_league_id = session.get("selected_league_id", "")
   user_leagues = session.get("user_leagues", [])
@@ -1987,112 +1967,40 @@ def draft_analyzer():
     if form_league_id:
       selected_league_id = form_league_id
 
-    if action in ["sync", "select_league", "analyze_draft"] or (
+    if action in ["sync", "analyze_draft"] or (
         selected_league_id and selected_league_id != session.get("selected_league_id")
     ):
       sleeper_msg = process_sleeper_sync(sleeper_input, selected_league_id)
 
-    if selected_league_id:
-      league_data = fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{selected_league_id}"
-      )
-      if league_data and league_data.get("draft_id"):
-        draft_id = league_data.get("draft_id")
-        draft_picks = (
-            fetch_sleeper_api(
-                f"https://api.sleeper.app/v1/draft/{draft_id}/picks"
-            )
-            or []
-        )
-        users_data = (
-            fetch_sleeper_api(
-                f"https://api.sleeper.app/v1/league/{selected_league_id}/users"
-            )
-            or []
-        )
-        rosters_data = (
-            fetch_sleeper_api(
-                f"https://api.sleeper.app/v1/league/{selected_league_id}/rosters"
-            )
-            or []
-        )
-        player_map = get_sleeper_player_map()
-        active_players, _ = get_fantasycalc_player_data(is_superflex=True)
-        flat_vals = {}
-        for pos, p_dict in active_players.items():
-          for name, val in p_dict.items():
-            flat_vals[name] = val
-
-        user_id_to_name = {
-            u["user_id"]: u.get("display_name", "Unknown")
-            for u in users_data
-            if "user_id" in u
+    owner_rosters = session.get("owner_rosters", {})
+    league_owners = session.get("league_owners", {})
+    if owner_rosters:
+      team_grades = {}
+      for owner in league_owners:
+        roster = owner_rosters.get(owner, {})
+        picks = []
+        total_val = 0
+        idx = 1
+        for name, val in roster.items():
+          if "Pick" in name or "Round" in name:
+            picks.append({
+                "round": 1 if "1st" in name else (2 if "2nd" in name else 3),
+                "pick_no": idx,
+                "overall": idx,
+                "player_name": name,
+                "value": val,
+                "expected_value": int(val * 0.9)
+            })
+            total_val += val
+            idx += 1
+        grade = "S" if total_val > 8000 else ("A" if total_val > 6000 else ("B" if total_val > 4000 else "C"))
+        team_grades[owner] = {
+            "grade": grade,
+            "total_value": total_val,
+            "picks_count": len(picks),
+            "picks": picks
         }
-        roster_id_to_owner = {}
-        for r in rosters_data:
-          r_id = r.get("roster_id")
-          oid = r.get("owner_id")
-          if r_id and oid in user_id_to_name:
-            roster_id_to_owner[r_id] = user_id_to_name[oid]
-
-        team_grades = {}
-        for owner in user_id_to_name.values():
-          team_grades[owner] = {
-              "total_value": 0,
-              "picks_count": 0,
-              "picks": [],
-              "grade": "B",
-          }
-
-        for p in draft_picks:
-          overall = p.get("pick_no", 1)
-          round_no = p.get("round", 1)
-          pick_in_round = p.get("draft_slot", 1)
-          roster_id = p.get("roster_id")
-          owner_name = roster_id_to_owner.get(roster_id, f"Team {roster_id}")
-          pid = str(p.get("player_id", ""))
-          player_name = player_map.get(pid, f"Player {pid}")
-
-          val = flat_vals.get(player_name, 5000 - (overall * 50))
-          expected_val = 5000 - (overall * 45)
-
-          if owner_name not in team_grades:
-            team_grades[owner_name] = {
-                "total_value": 0,
-                "picks_count": 0,
-                "picks": [],
-                "grade": "B",
-            }
-
-          team_grades[owner_name]["total_value"] += val
-          team_grades[owner_name]["picks_count"] += 1
-          team_grades[owner_name]["picks"].append({
-              "round": round_no,
-              "pick_no": pick_in_round,
-              "overall": overall,
-              "player_name": player_name,
-              "value": val,
-              "expected_value": max(500, expected_val),
-          })
-
-        for owner, data in team_grades.items():
-          total = data["total_value"]
-          if total > 35000:
-            data["grade"] = "S"
-          elif total > 28000:
-            data["grade"] = "A"
-          elif total > 20000:
-            data["grade"] = "B"
-          elif total > 12000:
-            data["grade"] = "C"
-          else:
-            data["grade"] = "D"
-
-        draft_results = {"team_grades": team_grades}
-      else:
-        sleeper_msg = (
-            "No active draft found for this league yet on Sleeper API."
-        )
+      draft_results = {"team_grades": team_grades}
 
   return render_template_string(
       DRAFT_ANALYZER_TEMPLATE,
@@ -2103,13 +2011,9 @@ def draft_analyzer():
       selected_league_id=selected_league_id,
       user_leagues=user_leagues,
       sleeper_msg=sleeper_msg,
-      draft_results=draft_results,
+      draft_results=draft_results
   )
 
-
-# ==========================================
-# API ENDPOINTS FOR LIVE DRAFT BOARD
-# ==========================================
 
 @app.route("/api/rookies")
 def api_rookies():
@@ -2118,31 +2022,26 @@ def api_rookies():
 
 @app.route("/api/all-players")
 def api_all_players():
-  fmt = request.args.get("format", "1QB")
-  is_sf = fmt == "Superflex"
-  players = fetch_live_fantasycalc_values(is_superflex=is_sf)
+  is_sf = request.args.get("format") == "Superflex"
+  players, _ = get_fantasycalc_player_data(is_superflex=is_sf)
   flat_list = []
   rank = 1
-  for pos_group, p_dict in players.items():
+  for pos, p_dict in players.items():
     for name, val in p_dict.items():
-      pos_code = "QB"
-      if "Running" in pos_group or pos_group == "Running Backs":
-        pos_code = "RB"
-      elif "Wide" in pos_group or pos_group == "Wide Receivers":
-        pos_code = "WR"
-      elif "Tight" in pos_group or pos_group == "Tight Ends":
-        pos_code = "TE"
-      elif "Draft" in pos_group or pos_group == "Draft Picks":
-        pos_code = "PICK"
-
+      if "Pick" in name:
+        continue
+      parts = name.split("(")
+      p_name = parts[0].strip()
+      p_pos = parts[1].replace(")", "").strip() if len(parts) > 1 else "UNK"
       flat_list.append({
-          "id": name,
+          "id": rank,
           "name": name,
-          "pos": pos_code,
-          "val": val,
+          "pos": p_pos,
+          "team": "NFL",
           "rank": rank,
-          "adp": round(rank * 1.1, 1),
-          "projected_points": int(val / 30),
+          "val": val,
+          "adp": float(rank),
+          "projected_points": int(val / 30)
       })
       rank += 1
   return jsonify(flat_list)
@@ -2154,66 +2053,52 @@ def api_league_draft_info():
   if not league_id:
     return jsonify({"success": False})
 
-  league_data = fetch_sleeper_api(
-      f"https://api.sleeper.app/v1/league/{league_id}"
-  )
-  if not league_data:
+  target_league = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}")
+  if not target_league:
     return jsonify({"success": False})
 
-  draft_id = league_data.get("draft_id")
-  teams = league_data.get("total_rosters", 12)
+  teams_count = target_league.get("total_rosters", 12)
+  draft_id = target_league.get("draft_id")
 
   slot_to_owner = {}
-  users_data = (
-      fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{league_id}/users"
-      )
-      or []
-  )
-  rosters_data = (
-      fetch_sleeper_api(
-          f"https://api.sleeper.app/v1/league/{league_id}/rosters"
-      )
-      or []
-  )
-
-  user_id_to_name = {
-      u["user_id"]: u.get("display_name", "Unknown")
-      for u in users_data
-      if "user_id" in u
-  }
-  roster_id_to_owner = {}
-  for r in rosters_data:
-    r_id = r.get("roster_id")
-    oid = r.get("owner_id")
-    if r_id and oid in user_id_to_name:
-      roster_id_to_owner[r_id] = user_id_to_name[oid]
-
   picks_data = []
+
   if draft_id:
-    draft_picks = (
-        fetch_sleeper_api(
-            f"https://api.sleeper.app/v1/draft/{draft_id}/picks"
-        )
-        or []
-    )
+    draft_picks = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}/picks") or []
+    users_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/users") or []
+    rosters_data = fetch_sleeper_api(f"https://api.sleeper.app/v1/league/{league_id}/rosters") or []
+
+    user_map = {u["user_id"]: u.get("display_name", "Unknown") for u in users_data}
+    roster_owner_map = {r["roster_id"]: user_map.get(r.get("owner_id"), "Team") for r in rosters_data}
+    draft_details = fetch_sleeper_api(f"https://api.sleeper.app/v1/draft/{draft_id}") or {}
+    draft_order = draft_details.get("draft_order", {})
+
+    for slot, uid in draft_order.items():
+      oname = user_map.get(uid, f"Slot {slot}")
+      slot_to_owner[int(slot)] = oname
+
     for p in draft_picks:
       pick_no = p.get("pick_no")
       player_id = p.get("player_id")
       roster_id = p.get("roster_id")
-      owner_name = roster_id_to_owner.get(roster_id, f"Team {roster_id}")
-      slot_to_owner[pick_no] = owner_name
-      if pick_no and player_id:
-        picks_data.append({"pick_no": pick_no, "player_id": player_id})
+      owner_name = roster_owner_map.get(roster_id, "")
+      player_map = get_sleeper_player_map()
+      p_name = player_map.get(str(player_id), player_id)
+      picks_data.append({
+          "pick_no": pick_no,
+          "player_id": p_name,
+          "owner": owner_name
+      })
 
   return jsonify({
       "success": True,
       "draft_id": draft_id,
-      "teams": teams,
+      "teams": teams_count,
+      "total_picks": teams_count * 4,
       "slot_to_owner": slot_to_owner,
-      "picks": picks_data,
+      "picks": picks_data
   })
 
 
 if __name__ == "__main__":
-  app.run(debug=True, port=5000)
+  app.run(debug=True)
